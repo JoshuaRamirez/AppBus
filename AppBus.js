@@ -1,10 +1,10 @@
-define(function () {
+function Bus() {
 
     var subscriptions = [];
 
     var makeDeliveryJob = function (subscriber) {
-        return function (event) {
-            subscriber.apply(null, event.Arguments);
+        return function (payload) {
+            subscriber.apply(null, [payload]);
         };
     };
 
@@ -17,29 +17,16 @@ define(function () {
         return subscription;
     };
 
-    var sendSubscriptions = function(event){
+    var sendSubscriptions = function (eventName, payload) {
         for (var i = 0; i < subscriptions.length; i++) {
             var subscription = subscriptions[i];
-            if (subscription.EventName = event.Name) {
-                subscription.Send(event);
+            if (subscription.EventName === eventName) {
+                subscription.Send(payload);
             }
         }
     };
 
-    var validateEvent = function(event){
-        if (!event.hasOwnProperty("Name")) {
-            throw "Interactivity Failure: " +
-                "Tried to publish an event object missing a 'Name' property. " +
-                "Set a 'Name' property (string) on the event object before publishing."
-        }
-        if (!event.hasOwnProperty("Arguments")) {
-            throw "Interactivity Failure: " +
-                "Tried to publish an event object missing an 'Arguments' property. " +
-                "Set a 'Arguments' property (array) on the event object before publishing."
-        }
-    };
-
-    var makeSubscriptionApi = function(subscriber){
+    var makeSubscriptionApi = function (subscriber) {
 
         //Implementation
         var to = function (eventName) {
@@ -52,20 +39,21 @@ define(function () {
             To: to
         };
 
-    }
+    };
 
-    var subscribe = function(subscriber) {
+    var subscribe = function (subscriber) {
         return makeSubscriptionApi(subscriber);
     };
 
-    var publish = function(event) {
-        validateEvent(event);
-        sendSubscriptions(event);
-    }
+    var publish = function (eventName, payload) {
+        sendSubscriptions(eventName, payload);
+    };
 
     return {
         Subscribe: subscribe,
         Publish: publish
     };
 
-});
+}
+
+module.exports = Bus();

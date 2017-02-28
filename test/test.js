@@ -42,7 +42,7 @@ describe('AppBus', function(){
         });
 
         it('and then ignore publications.', function(){
-            appBus.publish(testEventName, false); //Would fail the testSubscriber() assertion if subscribed.
+            appBus.publish(testEventName, false);
         });
 
     });

@@ -1,59 +1,95 @@
-function Bus() {
+function AppBus() {
 
-    var subscriptions = [];
+    const subscriptions = [];
 
-    var makeDeliveryJob = function (subscriber) {
+    const curryDeliveryJob = function (subscriber) {
         return function (payload) {
             subscriber.apply(null, [payload]);
         };
     };
 
-    var makeSubscription = function (subscriber, eventName) {
-        var subscription = {
+    const makeSubscription = function (subscriber, eventName) {
+        const send = curryDeliveryJob(subscriber);
+        return {
             Subscriber: subscriber,
             EventName: eventName,
-            Send: makeDeliveryJob(subscriber)
+            Send: send
         };
-        return subscription;
     };
 
-    var sendSubscriptions = function (eventName, payload) {
-        for (var i = 0; i < subscriptions.length; i++) {
-            var subscription = subscriptions[i];
+    const sendSubscriptions = function (eventName, payload) {
+        subscriptions.forEach(function(subscription){
             if (subscription.EventName === eventName) {
                 subscription.Send(payload);
             }
-        }
+        });
     };
 
-    var makeSubscriptionApi = function (subscriber) {
+    const curryTo = function (subscriber) {
 
-        //Implementation
-        var to = function (eventName) {
-            var subscription = makeSubscription(subscriber, eventName);
+        //TODO: Ensure unique subscriptions?
+        const to = function (eventName) {
+            const subscription = makeSubscription(subscriber, eventName);
+            if(typeof eventName !== "string"){
+                throw new Error("Event name is not a string. Found: " + typeof eventName);
+            }
             subscriptions.push(subscription);
         };
 
-        //"API"
         return {
             To: to
         };
 
     };
 
-    var subscribe = function (subscriber) {
-        return makeSubscriptionApi(subscriber);
+    const curryFrom = function (subscriber) {
+
+        const from = function (eventName) {
+            if(typeof eventName !== "string"){
+                throw new Error("Event name is not a string. Found: " + typeof eventName);
+            }
+            subscriptions.forEach(function(subscription, index){
+                if(subscription.EventName === eventName && subscription.Subscriber === subscriber){
+                    subscriptions.splice(index, 1);
+                }
+            });
+        };
+
+        return {
+            From: from
+        };
+
     };
 
-    var publish = function (eventName, payload) {
+    //Usage: AppBus.unSubscribe(subscriber).from(eventName)
+    const subscribe = function (subscriber) {
+        if(typeof subscriber !== "function"){
+            throw new Error("Subscriber is not a function. Found: " + typeof subscriber);
+        }
+        return curryTo(subscriber);
+    };
+
+    //Usage: AppBus.unSubscribe(subscriber).from(eventName)
+    const unSubscribe = function (subscriber) {
+        if(typeof subscriber !== "function"){
+            throw new Error("Subscriber is not a function. Found: " + typeof subscriber);
+        }
+        return curryFrom(subscriber);
+    };
+
+    const publish = function (eventName, payload) {
+        if(typeof eventName !== "string") {
+            throw new Error("eventName is not a string. Found: " + typeof eventName);
+        }
         sendSubscriptions(eventName, payload);
     };
 
     return {
         Subscribe: subscribe,
-        Publish: publish
+        Publish: publish,
+        UnSubscribe: unSubscribe
     };
 
 }
 
-module.exports = Bus();
+export default AppBus();

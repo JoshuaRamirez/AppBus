@@ -11,16 +11,16 @@ function AppBus() {
     const makeSubscription = function (subscriber, eventName) {
         const send = curryDeliveryJob(subscriber);
         return {
-            Subscriber: subscriber,
-            EventName: eventName,
-            Send: send
+            subscriber: subscriber,
+            eventName: eventName,
+            send: send
         };
     };
 
     const sendSubscriptions = function (eventName, payload) {
         subscriptions.forEach(function(subscription){
-            if (subscription.EventName === eventName) {
-                subscription.Send(payload);
+            if (subscription.eventName === eventName) {
+                subscription.send(payload);
             }
         });
     };
@@ -37,7 +37,7 @@ function AppBus() {
         };
 
         return {
-            To: to
+            to: to
         };
 
     };
@@ -49,14 +49,14 @@ function AppBus() {
                 throw new Error('Event name is not a string. Found: ' + typeof eventName);
             }
             subscriptions.forEach(function(subscription, index){
-                if(subscription.EventName === eventName && subscription.Subscriber === subscriber){
+                if(subscription.eventName === eventName && subscription.subscriber === subscriber){
                     subscriptions.splice(index, 1);
                 }
             });
         };
 
         return {
-            From: from
+            from: from
         };
 
     };
@@ -64,7 +64,7 @@ function AppBus() {
     //Usage: AppBus.unSubscribe(subscriber).from(eventName)
     const subscribe = function (subscriber) {
         if(typeof subscriber !== 'function'){
-            throw new Error('Subscriber is not a function. Found: ' + typeof subscriber);
+            throw new Error('The subscriber argument is not a function. Found: ' + typeof subscriber);
         }
         return curryTo(subscriber);
     };
@@ -72,24 +72,33 @@ function AppBus() {
     //Usage: AppBus.unSubscribe(subscriber).from(eventName)
     const unSubscribe = function (subscriber) {
         if(typeof subscriber !== 'function'){
-            throw new Error('Subscriber is not a function. Found: ' + typeof subscriber);
+            throw new Error('The subscriber argument is not a function. Found: ' + typeof subscriber);
         }
         return curryFrom(subscriber);
     };
 
     const publish = function (eventName, payload) {
         if(typeof eventName !== 'string') {
-            throw new Error('eventName is not a string. Found: ' + typeof eventName);
+            throw new Error('The eventName argument is not a string. Found: ' + typeof eventName);
         }
         sendSubscriptions(eventName, payload);
     };
 
     return {
-        Subscribe: subscribe,
-        Publish: publish,
-        UnSubscribe: unSubscribe
+        subscribe: subscribe,
+        publish: publish,
+        unSubscribe: unSubscribe
     };
 
 }
 
-export default AppBus();
+const AppBusFactory = {
+    new: function(){
+        return AppBus();
+    }
+};
+
+const instance = AppBus();
+
+export {AppBusFactory};
+export default instance;

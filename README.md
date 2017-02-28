@@ -29,10 +29,17 @@ A small library that give you a publish / subscribe application bus that runs sy
   
   Console output should be "Hello World"
 
-
 ## Tests
-
+    
   `npm test`
+  
+## Stack
+  
+  * Grunt
+  * ES6 (Babel)
+  * ESLint
+  * Mocha
+  * Chai
 
 ## Contributing
 

@@ -9,7 +9,7 @@ A small library that give you a publish / subscribe application bus that runs sy
 
 ## Usage
 
-    //Require in AppBusFactory
+    //Require in the instance factory
     var AppBusFactory = require('app-bus');
     
     //Create an instance
@@ -20,19 +20,20 @@ A small library that give you a publish / subscribe application bus that runs sy
 
     //Define a subscriber
     var mySubscriber = function(payload){
-        console.log(payload);   
+        console.log(payload);
     };
     
-    //Subscribe to the event as a nem
-    AppBus.subscribe(mySubscriber).to(myEventName);
+    //Subscribe to the event as a name
+    appBus.subscribe(mySubscriber).to(myEventName);
     
     //Define an optional payload for the subscription
     var myPayload = "Hello World";
     
     //Publish an event with the optional payload
-    AppBus.publish(myEventName, myPayload)
+    appBus.publish(myEventName, myPayload);
     
-    //Console output should be "Hello World"
+    //Unsubscribe when done
+    appBus.unSubscribe(mySubscriber).from(myEventName);
 
 ## Tests
     

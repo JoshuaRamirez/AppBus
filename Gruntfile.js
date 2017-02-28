@@ -1,20 +1,31 @@
 module.exports = function(grunt) {
 
-    grunt.loadNpmTasks('grunt-babel');
+    require('load-grunt-tasks')(grunt);
 
     grunt.initConfig({
-        "babel": {
+        'eslint': {
+            target: ['src/app-bus.js']
+        },
+        'babel': {
             options: {
                 sourceMap: true
             },
             dist: {
                 files: {
-                    "dist/app-bus.js": "src/app-bus.js"
+                    'dist/app-bus.js': 'src/app-bus.js'
                 }
             }
         }
     });
 
-    grunt.registerTask("default", ["babel"]);
+    grunt.registerTask(
+
+        'default',
+        [
+            'eslint',
+            'babel'
+        ]
+
+    );
 
 };

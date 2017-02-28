@@ -2,10 +2,7 @@
   "name": "app-bus",
   "version": "1.0.0",
   "description": "An asynchronous application event bus for javascript designed to work with the pub/sub paradigm.",
-  "bin": {
-    "app-bus": "./bin/main.js"
-  },
-  "main": "./dist/lib.js",
+  "main": "./dist/app-bus.js",
   "scripts": {},
   "repository": {
     "type": "git",
@@ -30,7 +27,9 @@
   "devDependencies": {
     "babel-preset-env": "^1.1.10",
     "grunt": "^1.0.1",
-    "grunt-babel": "^6.0.0"
+    "grunt-babel": "^6.0.0",
+    "grunt-eslint": "^19.0.0",
+    "load-grunt-tasks": "^3.5.2"
   },
   "standard": {
     "parser": "babel-eslint",

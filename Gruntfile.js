@@ -19,10 +19,11 @@ module.exports = function(grunt) {
                 }
             }
         },
-        mochaTest: {
+        'mochaTest': {
             test: {
                 options: {
                     reporter: 'spec',
+                    require: ['babel-register', 'babel-polyfill']
                 },
                 src: ['test/**/*.js']
             }

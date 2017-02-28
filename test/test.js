@@ -1,7 +1,7 @@
 'use strict';
 
 import chai from 'chai';
-import {AppBusFactory} from '../src/app-bus';
+import AppBusFactory from '../src/app-bus';
 
 const expect = chai.expect;
 
@@ -66,15 +66,31 @@ describe('AppBus', function(){
 
         });
 
-        //Note: Keep this when/if the potential option of adding duplicate subscriptions is supported.
-        // it('and un-subscribes duplicate subscriber functions all at once.', function(){
-        //
-        //     counter = 0;
-        //     appBus.unSubscribe(testSubscriber).from(testEventName);
-        //     appBus.publish(testEventName, 3);
-        //     expect(counter).to.equal(0);
-        //
-        // });
+    });
+
+    describe('Module', function(){
+
+        it('Can import the factory,', function(){
+            expect(AppBusFactory).to.have.property('new');
+        });
+
+        it('and use it to create an instance.', function(){
+            const appBus = AppBusFactory.new();
+            expect(appBus).to.have.property('publish');
+            expect(appBus).to.have.property('subscribe');
+        });
+
+        it('Can require the factory', function(){
+            const appBusFactory = require('../src/app-bus');
+            expect(appBusFactory).to.have.property('new');
+        });
+
+        it('and use it to create an instance.', function(){
+            const appBus = AppBusFactory.new();
+            expect(appBus).to.have.property('publish');
+            expect(appBus).to.have.property('subscribe');
+        });
+
 
     });
 

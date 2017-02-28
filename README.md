@@ -9,25 +9,30 @@ A small library that give you a publish / subscribe application bus that runs sy
 
 ## Usage
 
-    //Require in AppBus
-    var AppBus = require('app-bus');
+    //Require in AppBusFactory
+    var AppBusFactory = require('app-bus');
     
+    //Create an instance
+    var appBus = AppBusFactory.new();
+    
+    //Define an event as a name
     var myEventName = "Events.MyEvent.Occured";
 
-    //Subscriber aka 'Event Handler'
+    //Define a subscriber
     var mySubscriber = function(payload){
         console.log(payload);   
     };
     
-    //Subscribe
+    //Subscribe to the event as a nem
     AppBus.subscribe(mySubscriber).to(myEventName);
     
-    //Publish
+    //Define an optional payload for the subscription
     var myPayload = "Hello World";
+    
+    //Publish an event with the optional payload
     AppBus.publish(myEventName, myPayload)
-  
-  
-  Console output should be "Hello World"
+    
+    //Console output should be "Hello World"
 
 ## Tests
     

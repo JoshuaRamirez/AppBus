@@ -118,7 +118,4 @@ const AppBusFactory = {
     }
 };
 
-const instance = AppBus();
-
-export {AppBusFactory};
-export default instance;
+module.exports = AppBusFactory;

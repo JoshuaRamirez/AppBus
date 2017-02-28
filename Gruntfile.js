@@ -29,15 +29,14 @@ module.exports = function(grunt) {
         }
     });
 
-    grunt.registerTask(
+    grunt.registerTask('default', [
+        'eslint',
+        'babel',
+        'mochaTest'
+    ]);
 
-        'default',
-        [
-            'eslint',
-            'babel',
-            'mochaTest'
-        ]
-
-    );
+    grunt.registerTask('test', [
+        'mochaTest'
+    ])
 
 };

@@ -39,7 +39,10 @@ function AppBus() {
     };
 
     const addSubscription = function(subscriber, eventName){
-        //TODO: Ensure unique subscriptions?
+        const duplicateSubscriptions = findSubscriptions(eventName, subscriber);
+        if(duplicateSubscriptions.length > 0) {
+            return;
+        }
         const subscription = makeSubscription(subscriber, eventName);
         if(typeof eventName !== 'string'){
             throw new Error('Event name is not a string. Found: ' + typeof eventName);

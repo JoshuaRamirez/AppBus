@@ -18,16 +18,23 @@ describe('AppBus', function(){
     describe('Basic Functionality', function(){
 
         const appBus = AppBusFactory.new();
+
+        let receivedPayload = false;
         const testSubscriber = function(payload){
-            expect(payload).to.equal(true);
+            receivedPayload = payload;
         };
 
         it('Can subscribe,', function(){
             appBus.subscribe(testSubscriber).to(testEventName);
         });
 
-        it('publish,', function(){
+        it('publish without a payload,', function(){
+            appBus.publish(testEventName);
+        });
+
+        it('publish without a payload,', function(){
             appBus.publish(testEventName, true);
+            expect(receivedPayload).to.equal(true);
         });
 
         it('un-subscribe,', function(){
@@ -49,27 +56,25 @@ describe('AppBus', function(){
             counter += payload;
         };
 
-        it('Currently subscribes duplicate function invocations by default', function(){
-
-
+        it('Ignores duplicate subscriptions.', function(){
 
             appBus.subscribe(testSubscriber).to(testEventName);
             appBus.subscribe(testSubscriber).to(testEventName);
             appBus.subscribe(testSubscriber).to(testEventName);
             appBus.publish(testEventName, 3);
-
-            expect(counter).to.equal(9);
-
-        });
-
-        it('and un-subscribes duplicate subscriber functions all at once.', function(){
-
-            counter = 0;
-            appBus.unSubscribe(testSubscriber).from(testEventName);
-            appBus.publish(testEventName, 3);
-            expect(counter).to.equal(0);
+            expect(counter).to.equal(3);
 
         });
+
+        //Note: Keep this when/if the potential option of adding duplicate subscriptions is supported.
+        // it('and un-subscribes duplicate subscriber functions all at once.', function(){
+        //
+        //     counter = 0;
+        //     appBus.unSubscribe(testSubscriber).from(testEventName);
+        //     appBus.publish(testEventName, 3);
+        //     expect(counter).to.equal(0);
+        //
+        // });
 
     });
 

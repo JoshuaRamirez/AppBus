@@ -48,11 +48,13 @@ function AppBus() {
             if(typeof eventName !== 'string'){
                 throw new Error('Event name is not a string. Found: ' + typeof eventName);
             }
-            subscriptions.forEach(function(subscription, index){
+            for (let i = 0; i < subscriptions.length; i++){
+                let subscription = subscriptions[i];
                 if(subscription.eventName === eventName && subscription.subscriber === subscriber){
-                    subscriptions.splice(index, 1);
+                    subscriptions.splice(i, 1);
+                    i=-1;
                 }
-            });
+            }
         };
 
         return {

@@ -26,10 +26,13 @@
   "homepage": "https://github.com/JoshuaRamirez/AppBus#readme",
   "devDependencies": {
     "babel-preset-env": "^1.1.10",
+    "chai": "^3.5.0",
     "grunt": "^1.0.1",
     "grunt-babel": "^6.0.0",
     "grunt-eslint": "^19.0.0",
-    "load-grunt-tasks": "^3.5.2"
+    "grunt-mocha-test": "^0.13.2",
+    "load-grunt-tasks": "^3.5.2",
+    "mocha": "^3.2.0"
   },
   "standard": {
     "parser": "babel-eslint",

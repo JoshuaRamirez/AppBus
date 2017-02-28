@@ -4,7 +4,10 @@ module.exports = function(grunt) {
 
     grunt.initConfig({
         'eslint': {
-            target: ['src/app-bus.js']
+            target: [
+                'src/*.js',
+                'test/*.js'
+            ]
         },
         'babel': {
             options: {
@@ -15,6 +18,14 @@ module.exports = function(grunt) {
                     'dist/app-bus.js': 'src/app-bus.js'
                 }
             }
+        },
+        mochaTest: {
+            test: {
+                options: {
+                    reporter: 'spec',
+                },
+                src: ['test/**/*.js']
+            }
         }
     });
 
@@ -23,7 +34,8 @@ module.exports = function(grunt) {
         'default',
         [
             'eslint',
-            'babel'
+            'babel',
+            'mochaTest'
         ]
 
     );

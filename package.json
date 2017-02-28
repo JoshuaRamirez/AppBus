@@ -1,0 +1,43 @@
+{
+  "name": "app-bus",
+  "version": "1.0.0",
+  "description": "An asynchronous application event bus for javascript designed to work with the pub/sub paradigm.",
+  "bin": {
+    "app-bus": "./bin/main.js"
+  },
+  "main": "./dist/lib.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JoshuaRamirez/AppBus.git"
+  },
+  "keywords": [
+    "Events",
+    "Pub",
+    "Sub",
+    "Publish",
+    "Subscribe",
+    "Publications",
+    "Subscriptions",
+    "Bus"
+  ],
+  "author": "Joshua Ramirez <joshuaramirez2048@gmail.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JoshuaRamirez/AppBus/issues"
+  },
+  "homepage": "https://github.com/JoshuaRamirez/AppBus#readme",
+  "devDependencies": {
+    "babel-preset-env": "^1.1.10",
+    "grunt": "^1.0.1",
+    "grunt-babel": "^6.0.0"
+  },
+  "standard": {
+    "parser": "babel-eslint",
+    "globals": [
+      "DEV",
+      "PROD",
+      "TEST"
+    ]
+  }
+}

@@ -15,6 +15,24 @@ describe('AppBus', function(){
 
     const testEventName = 'Test';
 
+    describe('Queued Functionality', function(){
+        const appBus = AppBusFactory.new();
+        let counter = 0;
+        const testSubscriber = function(payload){
+            counter += payload;
+        };
+        it('Can queue several publications,', function(){
+            appBus.queuePublication(testEventName, 3);
+            appBus.queuePublication(testEventName, 3);
+            appBus.queuePublication(testEventName, 3);
+        });
+        it('subscribe, and have those publications sent.', function(){
+            appBus.subscribe(testSubscriber).to(testEventName);
+            expect(counter).to.equal(9);
+        });
+
+    });
+
     describe('Basic Functionality', function(){
 
         const appBus = AppBusFactory.new();

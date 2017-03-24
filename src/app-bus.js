@@ -1,5 +1,6 @@
 function AppBus() {
 
+    const queuedPublications = [];
     const subscriptions = [];
 
     const curryDeliveryJob = function (subscriber) {
@@ -39,13 +40,18 @@ function AppBus() {
     };
 
     const processQueuedPublications = function() {
-        queue.forEach((publication) => {
-            subscriptions.forEach((subscription) => {
-                if(publication.eventName === subscription.eventName){
-                    publishToSubscribers(publication.eventName, publication.payload)
+        for (let queuedPublicationIndex = 0; queuedPublicationIndex < queuedPublications.length; queuedPublicationIndex++) {
+            let queuedPublication = queuedPublications[queuedPublicationIndex];
+            for (let subscriptionIndex = 0; subscriptionIndex < subscriptions.length; subscriptionIndex++){
+                let subscription = subscriptions[subscriptionIndex];
+                if(queuedPublication.eventName === subscription.eventName){
+                    publishToSubscribers(queuedPublication.eventName, queuedPublication.payload);
+                    queuedPublications.splice(queuedPublicationIndex, 1);
+                    queuedPublicationIndex -= 1;
                 }
-            })
-        })
+            }
+        }
+
     };
 
     const validateEventName = function(eventName){
@@ -55,7 +61,7 @@ function AppBus() {
     };
 
     const validateSubscriber = function(subscriber){
-        if(typeof subscriber !== 'Function'){
+        if(typeof subscriber !== 'function'){
             throw new Error('The subscriber argument is not a Function. Found: ' + typeof subscriber);
         }
     };
@@ -79,7 +85,7 @@ function AppBus() {
             let subscription = subscriptions[i];
             if(subscription.eventName === eventName && subscription.subscriber === subscriber){
                 subscriptions.splice(i, 1);
-                i=-1;
+                i-=1;
             }
         }
     };
@@ -115,7 +121,7 @@ function AppBus() {
 
     const queuePublication = function (eventName, payload) {
         validateEventName(eventName);
-        queue.push({
+        queuedPublications.push({
             eventName: eventName,
             payload: payload
         });

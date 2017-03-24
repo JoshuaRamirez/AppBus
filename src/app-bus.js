@@ -38,22 +38,32 @@ function AppBus() {
         });
     };
 
+    const validateEventName = function(eventName){
+        if(typeof eventName !== 'string'){
+            throw new Error('The eventName argument is not a string. Found: ' + typeof eventName);
+        }
+    };
+
+    const validateSubscriber = function(subscriber){
+        if(typeof subscriber !== 'Function'){
+            throw new Error('The subscriber argument is not a Function. Found: ' + typeof subscriber);
+        }
+    };
+
     const addSubscription = function(subscriber, eventName){
+        validateEventName(eventName);
+        validateSubscriber(subscriber);
         const duplicateSubscriptions = findSubscriptions(eventName, subscriber);
         if(duplicateSubscriptions.length > 0) {
             return;
         }
         const subscription = makeSubscription(subscriber, eventName);
-        if(typeof eventName !== 'string'){
-            throw new Error('Event name is not a string. Found: ' + typeof eventName);
-        }
         subscriptions.push(subscription);
     };
 
     const removeSubscription = function (subscriber, eventName) {
-        if(typeof eventName !== 'string'){
-            throw new Error('Event name is not a string. Found: ' + typeof eventName);
-        }
+        validateEventName(eventName);
+        validateSubscriber(subscriber);
         for (let i = 0; i < subscriptions.length; i++){
             let subscription = subscriptions[i];
             if(subscription.eventName === eventName && subscription.subscriber === subscriber){
@@ -64,43 +74,31 @@ function AppBus() {
     };
 
     const subscribe = function (subscriber) {
-
         const curryTo = function (subscriber) {
             const to = function(eventName){
                 addSubscription(subscriber, eventName);
             };
             return {to: to};
         };
-
         if(typeof subscriber !== 'function'){
             throw new Error('The subscriber argument is not a function. Found: ' + typeof subscriber);
         }
-
         return curryTo(subscriber);
-
     };
 
     const unSubscribe = function (subscriber) {
-
+        validateSubscriber(subscriber);
         const curryFrom = function (subscriber) {
             const from = function (eventName) {
                 removeSubscription(subscriber, eventName);
             };
             return {from: from};
         };
-
-        if(typeof subscriber !== 'function'){
-            throw new Error('The subscriber argument is not a function. Found: ' + typeof subscriber);
-        }
-
         return curryFrom(subscriber);
-
     };
 
     const publish = function (eventName, payload) {
-        if(typeof eventName !== 'string') {
-            throw new Error('The eventName argument is not a string. Found: ' + typeof eventName);
-        }
+        validateEventName(eventName);
         sendSubscriptions(eventName, payload);
     };
 

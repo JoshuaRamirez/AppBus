@@ -31,11 +31,21 @@ function AppBus() {
         return foundSubscriptions;
     };
 
-    const sendSubscriptions = function(eventName, payload) {
+    const publishToSubscribers = function(eventName, payload) {
         const foundSubscriptions = findSubscriptions(eventName);
         foundSubscriptions.forEach(function(subscription){
             subscription.send(payload);
         });
+    };
+
+    const processQueuedPublications = function() {
+        queue.forEach((publication) => {
+            subscriptions.forEach((subscription) => {
+                if(publication.eventName === subscription.eventName){
+                    publishToSubscribers(publication.eventName, publication.payload)
+                }
+            })
+        })
     };
 
     const validateEventName = function(eventName){
@@ -59,6 +69,7 @@ function AppBus() {
         }
         const subscription = makeSubscription(subscriber, eventName);
         subscriptions.push(subscription);
+        processQueuedPublications();
     };
 
     const removeSubscription = function (subscriber, eventName) {
@@ -99,12 +110,21 @@ function AppBus() {
 
     const publish = function (eventName, payload) {
         validateEventName(eventName);
-        sendSubscriptions(eventName, payload);
+        publishToSubscribers(eventName, payload);
+    };
+
+    const queuePublication = function (eventName, payload) {
+        validateEventName(eventName);
+        queue.push({
+            eventName: eventName,
+            payload: payload
+        });
     };
 
     return {
         subscribe: subscribe,
         publish: publish,
+        queuePublication: queuePublication,
         unSubscribe: unSubscribe
     };
 

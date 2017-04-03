@@ -51,7 +51,6 @@ function AppBus() {
                 }
             }
         }
-
     };
 
     const validateEventName = function(eventName){
@@ -67,8 +66,6 @@ function AppBus() {
     };
 
     const addSubscription = function(subscriber, eventName){
-        validateEventName(eventName);
-        validateSubscriber(subscriber);
         const duplicateSubscriptions = findSubscriptions(eventName, subscriber);
         if(duplicateSubscriptions.length > 0) {
             return;
@@ -79,8 +76,6 @@ function AppBus() {
     };
 
     const removeSubscription = function (subscriber, eventName) {
-        validateEventName(eventName);
-        validateSubscriber(subscriber);
         for (let i = 0; i < subscriptions.length; i++){
             let subscription = subscriptions[i];
             if(subscription.eventName === eventName && subscription.subscriber === subscriber){
@@ -90,47 +85,97 @@ function AppBus() {
         }
     };
 
-    const subscribe = function (subscriber) {
-        const curryTo = function (subscriber) {
-            const to = function(eventName){
-                addSubscription(subscriber, eventName);
-            };
-            return {to: to};
+    const queuePublication = function (eventName, payload) {
+        const publication = {
+            eventName: eventName,
+            payload: payload
         };
-        if(typeof subscriber !== 'function'){
-            throw new Error('The subscriber argument is not a function. Found: ' + typeof subscriber);
+        const foundSubscriptions = findSubscriptions(eventName);
+        if(foundSubscriptions.length){
+            publishToSubscribers(eventName, payload);
+        } else {
+            queuedPublications.push(publication);
         }
+
+    };
+
+    const queueOnlyLatestPublication = function (eventName, payload) {
+        for (let i = 0; queuedPublications.length; i++){
+            let queuedPublication = queuedPublications[i];
+            if(queuedPublication.eventName === eventName){
+                queuedPublications.splice(i, 1);
+                i -= 1;
+            }
+        }
+        queuePublication(eventName, payload);
+    };
+
+    const curryTo = function (subscriber) {
+        return {
+            to: function(eventName){
+                addSubscription(subscriber, eventName);
+            }
+        };
+    };
+
+    const curryFrom = function (subscriber) {
+        return {
+            from: function (eventName) {
+                removeSubscription(subscriber, eventName);
+            }
+        };
+    };
+
+    const curryQueueOptions = function (eventName, payload) {
+        return {
+            all: function(){
+                queuePublication(eventName, payload);
+            },
+            latest: function(){
+                queueOnlyLatestPublication(eventName, payload);
+            },
+        };
+    };
+
+    const curryTimingOptions = function (eventName, payload) {
+        return {
+            now: function(){
+                publishToSubscribers(eventName, payload);
+            },
+            queue: curryQueueOptions(eventName, payload)
+        };
+    };
+
+    const curryPublishOptions = function (eventName) {
+        return {
+            now: function(){
+                publishToSubscribers(eventName);
+            },
+            queue: curryQueueOptions(eventName),
+            with: function (payload) {
+                return curryTimingOptions(eventName, payload);
+            }
+        };
+    };
+
+    const subscribe = function (subscriber) {
+        validateSubscriber(subscriber);
         return curryTo(subscriber);
     };
 
     const unSubscribe = function (subscriber) {
         validateSubscriber(subscriber);
-        const curryFrom = function (subscriber) {
-            const from = function (eventName) {
-                removeSubscription(subscriber, eventName);
-            };
-            return {from: from};
-        };
         return curryFrom(subscriber);
     };
 
-    const publish = function (eventName, payload) {
+    const publish = function (eventName) {
         validateEventName(eventName);
-        publishToSubscribers(eventName, payload);
-    };
-
-    const queuePublication = function (eventName, payload) {
-        validateEventName(eventName);
-        queuedPublications.push({
-            eventName: eventName,
-            payload: payload
-        });
+        return curryPublishOptions(eventName);
     };
 
     return {
         subscribe: subscribe,
         publish: publish,
-        queuePublication: queuePublication,
         unSubscribe: unSubscribe
     };
 

@@ -100,7 +100,7 @@ function AppBus() {
     };
 
     const queueOnlyLatestPublication = function (eventName, payload) {
-        for (let i = 0; queuedPublications.length; i++){
+        for (let i = 0; i < queuedPublications.length; i++){
             let queuedPublication = queuedPublications[i];
             if(queuedPublication.eventName === eventName){
                 queuedPublications.splice(i, 1);

@@ -120,6 +120,9 @@ describe('AppBus', function(){
             appBus.publish(testEventName).with(3).queue.latest();
             appBus.publish(testEventName).with(3).queue.latest();
         });
+        it('Can queue again with a different event alongside other events', function(){
+            appBus.publish('ignored').with(3).queue.latest();
+        });
         it('but each one will have been processed because a subscription exists.', function(){
             expect(payloadReceivedCounter).to.equal(9);
         });
@@ -141,7 +144,6 @@ describe('AppBus', function(){
             counter += payload;
         };
         it('Ignores duplicate subscriptions.', function(){
-
             appBus.subscribe(testSubscriber).to(testEventName);
             appBus.subscribe(testSubscriber).to(testEventName);
             appBus.subscribe(testSubscriber).to(testEventName);

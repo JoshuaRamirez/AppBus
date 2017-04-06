@@ -1,6 +1,6 @@
 {
   "name": "app-bus",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "An asynchronous application event bus for javascript designed to work with the pub/sub paradigm.",
   "main": "./dist/app-bus.js",
   "scripts": {

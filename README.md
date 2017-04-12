@@ -63,7 +63,40 @@ A small library that give you a publish / subscribe application bus that runs sy
     
     //Subscribe and expect only the last queued publication without a payload to be received
     appBus.subscribe(mySubscriber).to(myEventName);
-
+    
+    //Clear subscription by event name
+    appBus.clear.subscriptions.byEventName(myEventName);
+    
+    //Also clear all subscriptions
+    appBus.clear.subscriptions.all();
+    
+    //Clear queued subscriptions by event name
+    appBus.clear.queue.byEventName(myEventName);
+    
+    //Also clear all queued subscriptions
+    appBus.clear.queue.all();
+    
+    //Post publications for future subscriptions
+    appBus.publish(myEventName).post();
+    
+    //Update and overwrite the posted publication to have a payload 
+    appBus.publish(myEventName).with(myPayload).post();
+    
+    //Subscribe and receive the posted publication
+    appBus.subscribe(mySubscriber).to(myEventName);
+    
+    //Unsubscribe...
+    appBus.unSubscribe(mySubscriber).from(myEventName);
+    
+    //Then subscribe again and receive the posted publication again
+    appBus.subscribe(mySubscriber).to(myEventName);
+    
+    //Clear that particular posting
+    appBus.clear.posts.byEventName(myEventName);
+    
+    //Also clear all posts
+    appBus.clear.posts.all();
+    
 ## Tests
     
   `npm test`

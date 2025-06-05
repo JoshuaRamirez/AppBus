@@ -1,50 +1,60 @@
+interface Publication {
+    eventName: string;
+    payload?: any;
+}
+
+interface Subscription {
+    subscriber: (payload?: any) => void;
+    eventName: string;
+    send: (payload?: any) => void;
+}
+
 function AppBus() {
+    const postedPublications: Publication[] = [];
+    const queuedPublications: Publication[] = [];
+    const subscriptions: Subscription[] = [];
 
-    const postedPublications = [];
-    const queuedPublications = [];
-    const subscriptions = [];
-
-    const curryDeliveryJob = function (subscriber) {
-        return function (payload) {
+    const curryDeliveryJob = (subscriber: (payload?: any) => void) => {
+        return (payload?: any) => {
             subscriber.apply(null, [payload]);
         };
     };
 
-    const makeSubscription = function (subscriber, eventName) {
+    const makeSubscription = (subscriber: (payload?: any) => void, eventName: string): Subscription => {
         const send = curryDeliveryJob(subscriber);
         return {
-            subscriber: subscriber,
-            eventName: eventName,
-            send: send
+            subscriber,
+            eventName,
+            send
         };
     };
 
-    const findSubscriptions = function (eventName, subscriber) {
-        const foundSubscriptions = [];
-        subscriptions.forEach(function (subscription) {
+    const findSubscriptions = (eventName: string, subscriber?: (payload?: any) => void): Subscription[] => {
+        const found: Subscription[] = [];
+        subscriptions.forEach(subscription => {
             if (subscription.eventName === eventName) {
                 if (subscriber) {
                     if (subscription.subscriber === subscriber) {
-                        foundSubscriptions.push(subscription);
+                        found.push(subscription);
                     }
                 } else {
-                    foundSubscriptions.push(subscription);
+                    found.push(subscription);
                 }
             }
         });
-        return foundSubscriptions;
+        return found;
     };
 
-    const publishToSubscribers = function (eventName, payload) {
-        const foundSubscriptions = findSubscriptions(eventName);
-        foundSubscriptions.forEach(function (subscription) {
+    const publishToSubscribers = (eventName: string, payload?: any) => {
+        const found = findSubscriptions(eventName);
+        found.forEach(subscription => {
             subscription.send(payload);
         });
     };
 
-    const processQueuedPublications = function (eventName) {
+    const processQueuedPublications = (eventName: string) => {
         for (let i = 0; i < queuedPublications.length; i++) {
-            let queuedPublication = queuedPublications[i];
+            const queuedPublication = queuedPublications[i];
             if (queuedPublication.eventName === eventName) {
                 publishToSubscribers(queuedPublication.eventName, queuedPublication.payload);
                 queuedPublications.splice(i, 1);
@@ -53,28 +63,28 @@ function AppBus() {
         }
     };
 
-    const processPostedPublications = function (eventName) {
+    const processPostedPublications = (eventName: string) => {
         for (let i = 0; i < postedPublications.length; i++) {
-            let postedPublication = postedPublications[i];
+            const postedPublication = postedPublications[i];
             if (postedPublication.eventName === eventName) {
                 publishToSubscribers(postedPublication.eventName, postedPublication.payload);
             }
         }
     };
 
-    const validateEventName = function (eventName) {
+    const validateEventName = (eventName: string) => {
         if (typeof eventName !== 'string') {
             throw new Error('The eventName argument is not a string. Found: ' + typeof eventName);
         }
     };
 
-    const validateSubscriber = function (subscriber) {
+    const validateSubscriber = (subscriber: unknown) => {
         if (typeof subscriber !== 'function') {
             throw new Error('The subscriber argument is not a Function. Found: ' + typeof subscriber);
         }
     };
 
-    const addSubscription = function (subscriber, eventName) {
+    const addSubscription = (subscriber: (payload?: any) => void, eventName: string) => {
         const duplicateSubscriptions = findSubscriptions(eventName, subscriber);
         if (duplicateSubscriptions.length > 0) {
             return;
@@ -85,9 +95,9 @@ function AppBus() {
         processQueuedPublications(eventName);
     };
 
-    const removeSubscription = function (subscriber, eventName) {
+    const removeSubscription = (subscriber: (payload?: any) => void, eventName: string) => {
         for (let i = 0; i < subscriptions.length; i++) {
-            let subscription = subscriptions[i];
+            const subscription = subscriptions[i];
             if (subscription.eventName === eventName && subscription.subscriber === subscriber) {
                 subscriptions.splice(i, 1);
                 i -= 1;
@@ -95,17 +105,17 @@ function AppBus() {
         }
     };
 
-    const postPublication = function (eventName, payload) {
-        const publication = {
-            eventName: eventName,
-            payload: payload
+    const postPublication = (eventName: string, payload?: any) => {
+        const publication: Publication = {
+            eventName,
+            payload
         };
-        const foundSubscriptions = findSubscriptions(eventName);
-        if (foundSubscriptions.length) {
+        const found = findSubscriptions(eventName);
+        if (found.length) {
             publishToSubscribers(eventName, payload);
         }
         for (let i = 0; i < postedPublications.length; i++) {
-            let postedPublication = postedPublications[i];
+            const postedPublication = postedPublications[i];
             if (postedPublication.eventName === eventName) {
                 postedPublications.splice(i, 1);
                 i -= 1;
@@ -114,22 +124,22 @@ function AppBus() {
         postedPublications.push(publication);
     };
 
-    const queuePublication = function (eventName, payload) {
-        const publication = {
-            eventName: eventName,
-            payload: payload
+    const queuePublication = (eventName: string, payload?: any) => {
+        const publication: Publication = {
+            eventName,
+            payload
         };
-        const foundSubscriptions = findSubscriptions(eventName);
-        if (foundSubscriptions.length) {
+        const found = findSubscriptions(eventName);
+        if (found.length) {
             publishToSubscribers(eventName, payload);
         } else {
             queuedPublications.push(publication);
         }
     };
 
-    const queueOnlyLatestPublication = function (eventName, payload) {
+    const queueOnlyLatestPublication = (eventName: string, payload?: any) => {
         for (let i = 0; i < queuedPublications.length; i++) {
-            let queuedPublication = queuedPublications[i];
+            const queuedPublication = queuedPublications[i];
             if (queuedPublication.eventName === eventName) {
                 queuedPublications.splice(i, 1);
                 i -= 1;
@@ -138,21 +148,21 @@ function AppBus() {
         queuePublication(eventName, payload);
     };
 
-    const clearAllSubscriptions = function () {
+    const clearAllSubscriptions = () => {
         subscriptions.splice(0, subscriptions.length);
     };
 
-    const clearAllQueuedPublications = function () {
+    const clearAllQueuedPublications = () => {
         queuedPublications.splice(0, queuedPublications.length);
     };
 
-    const clearAllPostedPublications = function () {
+    const clearAllPostedPublications = () => {
         postedPublications.splice(0, postedPublications.length);
     };
 
-    const clearSubscriptionsByEventName = function (eventName) {
+    const clearSubscriptionsByEventName = (eventName: string) => {
         for (let i = 0; i < subscriptions.length; i++) {
-            let subscription = subscriptions[i];
+            const subscription = subscriptions[i];
             if (subscription.eventName === eventName) {
                 subscriptions.splice(i, 1);
                 i -= 1;
@@ -160,9 +170,9 @@ function AppBus() {
         }
     };
 
-    const clearQueuedPublicationsByEventName = function (eventName) {
+    const clearQueuedPublicationsByEventName = (eventName: string) => {
         for (let i = 0; i < queuedPublications.length; i++) {
-            let queuedPublication = queuedPublications[i];
+            const queuedPublication = queuedPublications[i];
             if (queuedPublication.eventName === eventName) {
                 queuedPublications.splice(i, 1);
                 i -= 1;
@@ -170,9 +180,9 @@ function AppBus() {
         }
     };
 
-    const clearPostedPublicationsByEventName = function (eventName) {
+    const clearPostedPublicationsByEventName = (eventName: string) => {
         for (let i = 0; i < postedPublications.length; i++) {
-            let postedPublication = postedPublications[i];
+            const postedPublication = postedPublications[i];
             if (postedPublication.eventName === eventName) {
                 postedPublications.splice(i, 1);
                 i -= 1;
@@ -180,55 +190,55 @@ function AppBus() {
         }
     };
 
-    const curryTo = function (subscriber) {
+    const curryTo = (subscriber: (payload?: any) => void) => {
         return {
-            to: function (eventName) {
+            to: (eventName: string) => {
                 addSubscription(subscriber, eventName);
             }
         };
     };
 
-    const curryFrom = function (subscriber) {
+    const curryFrom = (subscriber: (payload?: any) => void) => {
         return {
-            from: function (eventName) {
+            from: (eventName: string) => {
                 removeSubscription(subscriber, eventName);
             }
         };
     };
 
-    const curryQueueOptions = function (eventName, payload) {
+    const curryQueueOptions = (eventName: string, payload?: any) => {
         return {
-            all: function () {
+            all: () => {
                 queuePublication(eventName, payload);
             },
-            latest: function () {
+            latest: () => {
                 queueOnlyLatestPublication(eventName, payload);
             }
         };
     };
 
-    const curryTimingOptions = function (eventName, payload) {
+    const curryTimingOptions = (eventName: string, payload?: any) => {
         return {
-            now: function () {
+            now: () => {
                 publishToSubscribers(eventName, payload);
             },
-            post: function () {
+            post: () => {
                 postPublication(eventName, payload);
             },
-            queue: curryQueueOptions(eventName, payload),
+            queue: curryQueueOptions(eventName, payload)
         };
     };
 
-    const curryPublishOptions = function (eventName) {
+    const curryPublishOptions = (eventName: string) => {
         return {
-            now: function () {
+            now: () => {
                 publishToSubscribers(eventName);
             },
             queue: curryQueueOptions(eventName),
-            post: function () {
+            post: () => {
                 postPublication(eventName);
             },
-            with: function (payload) {
+            with: (payload: any) => {
                 return curryTimingOptions(eventName, payload);
             }
         };
@@ -249,34 +259,33 @@ function AppBus() {
         }
     };
 
-    const subscribe = function (subscriber) {
+    const subscribe = (subscriber: (payload?: any) => void) => {
         validateSubscriber(subscriber);
         return curryTo(subscriber);
     };
 
-    const unSubscribe = function (subscriber) {
+    const unSubscribe = (subscriber: (payload?: any) => void) => {
         validateSubscriber(subscriber);
         return curryFrom(subscriber);
     };
 
-    const publish = function (eventName) {
+    const publish = (eventName: string) => {
         validateEventName(eventName);
         return curryPublishOptions(eventName);
     };
 
     return {
-        subscribe: subscribe,
-        publish: publish,
-        unSubscribe: unSubscribe,
+        subscribe,
+        publish,
+        unSubscribe,
         clear: clearOptions
     };
-
 }
 
 const AppBusFactory = {
-    new: function () {
+    new: () => {
         return AppBus();
     }
 };
 
-module.exports = AppBusFactory;
+export default AppBusFactory;

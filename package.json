@@ -1,10 +1,13 @@
 {
   "name": "app-bus",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "An asynchronous application event bus for javascript designed to work with the pub/sub paradigm.",
-  "main": "./dist/app-bus.js",
+  "main": "./dist/cjs/index.js",
   "scripts": {
-    "test": "grunt test"
+    "build:cjs": "tsc -p tsconfig.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build": "npm run build:cjs && npm run build:esm",
+    "test": "npm run build && mocha test/**/*.js"
   },
   "repository": {
     "type": "git",
@@ -27,16 +30,12 @@
   },
   "homepage": "https://github.com/JoshuaRamirez/AppBus#readme",
   "devDependencies": {
-    "babel-polyfill": "^6.23.0",
-    "babel-preset-env": "^1.1.10",
-    "babel-register": "^6.23.0",
     "chai": "^3.5.0",
-    "grunt": "^1.0.1",
-    "grunt-babel": "^6.0.0",
-    "grunt-eslint": "^19.0.0",
-    "grunt-mocha-test": "^0.13.2",
-    "load-grunt-tasks": "^3.5.2",
-    "mocha": "^3.2.0"
+    "mocha": "^3.2.0",
+    "typescript": "^5.4.5",
+    "@types/node": "^20.11.19",
+    "@types/mocha": "^10.0.1",
+    "@types/chai": "^4.3.4"
   },
   "standard": {
     "parser": "babel-eslint",
@@ -45,5 +44,11 @@
       "PROD",
       "TEST"
     ]
+  },
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    "import": "./dist/esm/index.js",
+    "require": "./dist/cjs/index.js"
   }
 }

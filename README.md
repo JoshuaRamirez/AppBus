@@ -1,15 +1,18 @@
 AppBus
 =========
 
-A small library that give you a publish / subscribe application bus that runs synchronously and in-memory.
+A small library written in TypeScript that gives you a publish / subscribe application bus that runs synchronously and in-memory.
 
 ## Installation
+
+Both ESM and CommonJS builds are provided.
 
   `npm install app-bus --save`
 
 ## Usage
 
     //Require in the instance factory
+    import AppBusFactory from 'app-bus'; // ESM
     var AppBusFactory = require('app-bus');
     
     //Create an instance
@@ -98,14 +101,39 @@ A small library that give you a publish / subscribe application bus that runs sy
     appBus.clear.posts.all();
     
 ## Tests
-    
+
   `npm test`
+
+## Release Notes
+
+### 2.2.0
+- Ported the library to TypeScript.
+- Builds now output both CommonJS and ES modules.
+- Added a compatibility wrapper for `require`.
+- Dropped the Grunt/Babel build.
+
+### 2.1.1
+- Documentation updates only.
+
+### 2.1.0
+- Added posting and clearing APIs for queued events.
+- Improved queueing behavior and fixed multi-event bugs.
+- Expanded unit tests.
+
+### 1.1.0
+- Introduced queued publication support.
+- Centralized validation logic.
+
+### 1.0.2
+- Module now always exports the factory function.
+- Added Travis CI integration and documentation fixes.
+
+### 1.0.0
+- Initial release with publish/subscribe API and duplicate subscription handling.
   
 ## Stack
-  
-  * Grunt
-  * ES6 (Babel)
-  * ESLint
+
+  * TypeScript
   * Mocha
   * Chai
 

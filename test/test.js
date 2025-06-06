@@ -1,7 +1,7 @@
 'use strict';
 
-import chai from 'chai';
-import AppBusFactory from '../src/app-bus';
+const chai = require('chai');
+const AppBusFactory = require('../dist/cjs/index.js');
 
 const expect = chai.expect;
 
@@ -601,7 +601,7 @@ describe('AppBus', function () {
             expect(appBus).to.have.property('subscribe');
         });
         it('Can require the factory', function () {
-            const appBusFactory = require('../src/app-bus');
+            const appBusFactory = require('../dist/cjs/index.js');
             expect(appBusFactory).to.have.property('new');
         });
         it('and use it to create an instance.', function () {

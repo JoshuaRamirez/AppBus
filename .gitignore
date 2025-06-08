@@ -29,3 +29,7 @@ node_modules
 
 # WebStorm
 .idea
+
+# NYC coverage output
+.nyc_output
+coverage

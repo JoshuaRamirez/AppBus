@@ -635,4 +635,49 @@ describe('AppBus', function () {
         });
     });
 
+    describe('Additional Coverage', function () {
+        it('rejects invalid event names', function () {
+            const bus = AppBusFactory.new();
+            expect(() => bus.publish(123)).to.throw('eventName');
+        });
+
+        it('rejects invalid subscribers', function () {
+            const bus = AppBusFactory.new();
+            expect(() => bus.subscribe('notFn')).to.throw('Function');
+        });
+
+        it('supports async publishing without payload', function (done) {
+            const bus = AppBusFactory.new();
+            let called = false;
+            bus.subscribe(() => { called = true; }).to('A');
+            bus.publish('A').async();
+            expect(called).to.equal(false);
+            setTimeout(() => {
+                expect(called).to.equal(true);
+                done();
+            }, 5);
+        });
+
+        it('clears all subscriptions via unsubscribeAll', function () {
+            const bus = AppBusFactory.new();
+            const fn = () => {};
+            bus.subscribe(fn).to('E');
+            expect(bus.getSubscriptions('E').length).to.equal(1);
+            bus.unsubscribeAll();
+            expect(bus.getSubscriptions('E').length).to.equal(0);
+        });
+
+        it('returns subscription list per event', function () {
+            const bus = AppBusFactory.new();
+            const fn1 = () => {};
+            const fn2 = () => {};
+            bus.subscribe(fn1).to('E1');
+            bus.subscribe(fn2).to('E2');
+            const subsE1 = bus.getSubscriptions('E1');
+            const allSubs = bus.getSubscriptions();
+            expect(subsE1[0].subscriber).to.equal(fn1);
+            expect(allSubs.length).to.equal(2);
+        });
+    });
+
 });

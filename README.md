@@ -5,7 +5,8 @@ A small library written in TypeScript that gives you a publish / subscribe appli
 
 ## Installation
 
-Both ESM and CommonJS builds are provided.
+Both ESM and CommonJS builds are provided. Use the default import in modern
+bundlers or `require` in Node's CommonJS mode.
 
   `npm install app-bus --save`
 
@@ -37,6 +38,9 @@ Both ESM and CommonJS builds are provided.
     
     //Publish an event immediately without a payload
     appBus.publish(myEventName).now();
+
+    //Publish asynchronously using a microtask
+    appBus.publish(myEventName).with(myPayload).async();
     
     //Unsubscribe when done
     appBus.unSubscribe(mySubscriber).from(myEventName);
@@ -99,6 +103,19 @@ Both ESM and CommonJS builds are provided.
     
     //Also clear all posts
     appBus.clear.posts.all();
+
+## TypeScript Example
+
+    interface Events {
+        'user.created': { id: number };
+        'user.deleted': { id: number };
+    }
+
+    const typedBus = AppBusFactory.new<Events>();
+    typedBus.subscribe((payload) => {
+        console.log(payload.id);
+    }).to('user.created');
+    typedBus.publish('user.created').with({ id: 1 }).now();
     
 ## Tests
 

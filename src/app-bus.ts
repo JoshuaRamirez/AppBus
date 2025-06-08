@@ -9,6 +9,39 @@ interface Subscription {
     send: (payload?: any) => void;
 }
 
+export interface TypedAppBus<Events extends Record<string, any>> {
+    subscribe<K extends keyof Events>(
+        subscriber: (payload: Events[K]) => void
+    ): { to: (eventName: K) => void };
+    once<K extends keyof Events>(
+        subscriber: (payload: Events[K]) => void
+    ): { to: (eventName: K) => void };
+    unSubscribe<K extends keyof Events>(
+        subscriber: (payload: Events[K]) => void
+    ): { from: (eventName: K) => void };
+    publish<K extends keyof Events>(eventName: K): {
+        now: () => void;
+        post: () => void;
+        async: () => void;
+        queue: {
+            all: () => void;
+            latest: () => void;
+        };
+        with: (payload: Events[K]) => {
+            now: () => void;
+            post: () => void;
+            async: () => void;
+            queue: {
+                all: () => void;
+                latest: () => void;
+            };
+        };
+    };
+    unsubscribeAll(): void;
+    getSubscriptions(eventName?: keyof Events): unknown[];
+    clear: any;
+}
+
 function AppBus() {
     const postedPublications: Publication[] = [];
     const queuedPublications: Publication[] = [];
@@ -50,6 +83,10 @@ function AppBus() {
         found.forEach(subscription => {
             subscription.send(payload);
         });
+    };
+
+    const publishAsync = (eventName: string, payload?: any) => {
+        queueMicrotask(() => publishToSubscribers(eventName, payload));
     };
 
     const processQueuedPublications = (eventName: string) => {
@@ -198,6 +235,18 @@ function AppBus() {
         };
     };
 
+    const curryOnce = (subscriber: (payload?: any) => void) => {
+        return {
+            to: (eventName: string) => {
+                const wrapper = (payload?: any) => {
+                    subscriber(payload);
+                    removeSubscription(wrapper, eventName);
+                };
+                addSubscription(wrapper, eventName);
+            }
+        };
+    };
+
     const curryFrom = (subscriber: (payload?: any) => void) => {
         return {
             from: (eventName: string) => {
@@ -222,6 +271,9 @@ function AppBus() {
             now: () => {
                 publishToSubscribers(eventName, payload);
             },
+            async: () => {
+                publishAsync(eventName, payload);
+            },
             post: () => {
                 postPublication(eventName, payload);
             },
@@ -233,6 +285,9 @@ function AppBus() {
         return {
             now: () => {
                 publishToSubscribers(eventName);
+            },
+            async: () => {
+                publishAsync(eventName);
             },
             queue: curryQueueOptions(eventName),
             post: () => {
@@ -264,9 +319,25 @@ function AppBus() {
         return curryTo(subscriber);
     };
 
+    const once = (subscriber: (payload?: any) => void) => {
+        validateSubscriber(subscriber);
+        return curryOnce(subscriber);
+    };
+
     const unSubscribe = (subscriber: (payload?: any) => void) => {
         validateSubscriber(subscriber);
         return curryFrom(subscriber);
+    };
+
+    const unsubscribeAll = () => {
+        clearAllSubscriptions();
+    };
+
+    const getSubscriptionsList = (eventName?: string): Subscription[] => {
+        if (eventName) {
+            return findSubscriptions(eventName).slice();
+        }
+        return subscriptions.slice();
     };
 
     const publish = (eventName: string) => {
@@ -276,15 +347,18 @@ function AppBus() {
 
     return {
         subscribe,
+        once,
         publish,
         unSubscribe,
+        unsubscribeAll,
+        getSubscriptions: getSubscriptionsList,
         clear: clearOptions
     };
 }
 
 const AppBusFactory = {
-    new: () => {
-        return AppBus();
+    new: <E extends Record<string, any> = Record<string, any>>() => {
+        return AppBus() as unknown as TypedAppBus<E>;
     }
 };
 

@@ -611,4 +611,28 @@ describe('AppBus', function () {
         });
     });
 
+    describe('New Features:', function () {
+        it('supports once subscriptions', function () {
+            const bus = AppBusFactory.new();
+            let counter = 0;
+            const sub = () => { counter++; };
+            bus.once(sub).to('once');
+            bus.publish('once').now();
+            bus.publish('once').now();
+            expect(counter).to.equal(1);
+        });
+
+        it('supports async publishing', function (done) {
+            const bus = AppBusFactory.new();
+            let flag = false;
+            bus.subscribe((v) => { flag = v; }).to('async');
+            bus.publish('async').with(true).async();
+            expect(flag).to.equal(false);
+            setTimeout(() => {
+                expect(flag).to.equal(true);
+                done();
+            }, 5);
+        });
+    });
+
 });

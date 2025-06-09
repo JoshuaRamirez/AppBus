@@ -129,6 +129,11 @@ bundlers or `require` in Node's CommonJS mode.
 - Added a compatibility wrapper for `require`.
 - Dropped the Grunt/Babel build.
 
+### 2.3.0
+- Added typed events and generics for TypeScript.
+- Introduced asynchronous publishing support.
+- Improved and consolidated unit test coverage.
+
 ### 2.1.1
 - Documentation updates only.
 

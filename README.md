@@ -1,127 +1,90 @@
-AppBus
-=========
+# AppBus
 
-A small library written in TypeScript that gives you a publish / subscribe application bus that runs synchronously and in-memory.
+[![CI](https://github.com/JoshuaRamirez/AppBus/actions/workflows/test.yml/badge.svg)](https://github.com/JoshuaRamirez/AppBus/actions/workflows/test.yml)
+[![npm version](https://badge.fury.io/js/app-bus.svg)](https://www.npmjs.com/package/app-bus)
+[![license](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
+
+An in-memory publish/subscribe bus for JavaScript and TypeScript.
+
+AppBus is tiny, synchronous and dependency free. It supports typed events and works in both Node.js and browsers.
+
+## Table of Contents
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [TypeScript Example](#typescript-example)
+- [API Reference](#api-reference)
+- [Release Process](#release-process)
+- [Release Notes](#release-notes)
+- [Contributing](#contributing)
+
+## Features
+- Synchronous publish/subscribe API
+- Queue or post events for future subscribers
+- Optional asynchronous publishing using microtasks
+- Strongly typed events when used with TypeScript
 
 ## Installation
+```bash
+npm install app-bus --save
+```
+Both ESM and CommonJS builds are provided. Use `import` or `require` depending on your environment.
 
-Both ESM and CommonJS builds are provided. Use the default import in modern
-bundlers or `require` in Node's CommonJS mode.
+## Quick Start
+```js
+import AppBusFactory from 'app-bus'; // or const AppBusFactory = require('app-bus');
 
-  `npm install app-bus --save`
+const bus = AppBusFactory.new();
 
-## Usage
+bus.subscribe(payload => {
+  console.log('greeted:', payload);
+}).to('greet');
 
-    //Require in the instance factory
-    import AppBusFactory from 'app-bus'; // ESM
-    var AppBusFactory = require('app-bus');
-    
-    //Create an instance
-    var appBus = AppBusFactory.new();
-    
-    //Define an event as a name
-    var myEventName = "Events.MyEvent.Occured";
-
-    //Define a subscriber
-    var mySubscriber = function(payload){
-        console.log(payload);
-    };
-    
-    //Subscribe to the event as a name
-    appBus.subscribe(mySubscriber).to(myEventName);
-    
-    //Define an optional payload for the subscription
-    var myPayload = "Hello World";
-    
-    //Publish an event immediately with a payload
-    appBus.publish(myEventName).with(myPayload).now();
-    
-    //Publish an event immediately without a payload
-    appBus.publish(myEventName).now();
-
-    //Publish asynchronously using a microtask
-    appBus.publish(myEventName).with(myPayload).async();
-    
-    //Unsubscribe when done
-    appBus.unSubscribe(mySubscriber).from(myEventName);
-    
-    //Queue publications with a payload for the future when a subscription is made
-    appBus.publish(myEventName).with(myPayload).queue.all();
-    appBus.publish(myEventName).with(myPayload).queue.all();
-    appBus.publish(myEventName).with(myPayload).queue.all();
-    
-    //Subscribe and receive all the queued publications
-    appBus.subscribe(mySubscriber).to(myEventName);
-    
-    //Unsubscribe when done again
-    appBus.unSubscribe(mySubscriber).from(myEventName);
-    
-    //Queue a publication again with a payload for the future when a subscription is made
-    appBus.publish(myEventName).with(myPayload).queue.all();
-    
-    //Replace the publication with only the latest one queued
-    appBus.publish(myEventName).with(myPayload).queue.latest();
-    
-    //Replace the latest publication again with only the latest one queued
-    appBus.publish(myEventName).with(myPayload).queue.latest();
-    
-    //Replace the latest publication again with only the latest one queued without a payload
-    appBus.publish(myEventName).queue.latest();
-    
-    //Subscribe and expect only the last queued publication without a payload to be received
-    appBus.subscribe(mySubscriber).to(myEventName);
-    
-    //Clear subscription by event name
-    appBus.clear.subscriptions.byEventName(myEventName);
-    
-    //Also clear all subscriptions
-    appBus.clear.subscriptions.all();
-    
-    //Clear queued subscriptions by event name
-    appBus.clear.queue.byEventName(myEventName);
-    
-    //Also clear all queued subscriptions
-    appBus.clear.queue.all();
-    
-    //Post publications for future subscriptions
-    appBus.publish(myEventName).post();
-    
-    //Update and overwrite the posted publication to have a payload 
-    appBus.publish(myEventName).with(myPayload).post();
-    
-    //Subscribe and receive the posted publication
-    appBus.subscribe(mySubscriber).to(myEventName);
-    
-    //Unsubscribe...
-    appBus.unSubscribe(mySubscriber).from(myEventName);
-    
-    //Then subscribe again and receive the posted publication again
-    appBus.subscribe(mySubscriber).to(myEventName);
-    
-    //Clear that particular posting
-    appBus.clear.posts.byEventName(myEventName);
-    
-    //Also clear all posts
-    appBus.clear.posts.all();
+bus.publish('greet').with('hello').now();
+```
 
 ## TypeScript Example
+```ts
+interface Events {
+  'user.created': { id: number };
+  'user.deleted': { id: number };
+}
 
-    interface Events {
-        'user.created': { id: number };
-        'user.deleted': { id: number };
-    }
+const typedBus = AppBusFactory.new<Events>();
+typedBus.subscribe(e => console.log(e.id)).to('user.created');
+typedBus.publish('user.created').with({ id: 1 }).now();
+```
 
-    const typedBus = AppBusFactory.new<Events>();
-    typedBus.subscribe((payload) => {
-        console.log(payload.id);
-    }).to('user.created');
-    typedBus.publish('user.created').with({ id: 1 }).now();
-    
+## API Reference
+- `AppBusFactory.new<T>()` – Create a new bus. Optional generic `T` gives type safety.
+- `subscribe(fn).to(event)` – Register a subscriber for an event.
+- `once(fn).to(event)` – Subscribe for a single publication.
+- `unSubscribe(fn).from(event)` – Remove a subscriber.
+- `publish(event)` – Start a publication builder with helpers:
+  - `.with(payload)` – attach data.
+  - `.now()` – publish immediately.
+  - `.async()` – publish asynchronously.
+  - `.queue.all()` – queue multiple events until subscribed.
+  - `.queue.latest()` – keep only the most recent queued event.
+  - `.post()` – store a publication for the next subscription.
+- `clear.subscriptions.byEventName(name)` – Remove subscribers for a name.
+- `clear.queue.all()` / `clear.posts.all()` – Reset queued or posted events.
 ## Tests
+Run `npm test` to compile and execute the mocha test suite.
 
-  `npm test`
+## Release Process
+Run `npm run release` to build and publish the package. Append `--dry-run` or set `DRY_RUN=1` to test the release without publishing. Update `package.json` with a new version, add release notes, and tag the commit (for example `v2.3.1`).
 
 ## Release Notes
+```text
+### 2.3.1
+- Added ISC license
+- Trimmed sources from the npm package
+- Documented the release process
+- Added build, npm and license badges
+- CI now runs `npm audit`
+```
+Past release notes can be found in the [CHANGELOG](#release-notes) section below.
 
 ### 2.2.0
 - Ported the library to TypeScript.
@@ -152,13 +115,7 @@ bundlers or `require` in Node's CommonJS mode.
 
 ### 1.0.0
 - Initial release with publish/subscribe API and duplicate subscription handling.
-  
-## Stack
-
-  * TypeScript
-  * Mocha
-  * Chai
+```
 
 ## Contributing
-
-Pull requests are welcome. Please take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code.
+Pull requests are welcome. Please maintain the existing coding style and include unit tests for any changes. Run `npm test` and `npm run build` before submitting.

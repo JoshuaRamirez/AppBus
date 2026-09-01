@@ -1,4 +1,4 @@
-import AppBusFactory from './app-bus';
+import AppBusFactory from './app-bus.js';
 export default AppBusFactory;
 
 // Provide CommonJS default export for backward compatibility

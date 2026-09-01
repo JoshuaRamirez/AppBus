@@ -592,16 +592,15 @@ describe('AppBus', function () {
     });
 
     describe('Module:', function () {
-        it('Can import the factory,', function () {
+        it('Can load the CommonJS factory,', function () {
             expect(AppBusFactory).to.have.property('new');
         });
-        it('and use it to create an instance.', function () {
-            const appBus = AppBusFactory.new();
-            expect(appBus).to.have.property('publish');
-            expect(appBus).to.have.property('subscribe');
+        it('Can require the package by name', function () {
+            const appBusFactory = require('app-bus');
+            expect(appBusFactory).to.have.property('new');
         });
-        it('Can require the factory', function () {
-            const appBusFactory = require('../dist/cjs/index.js');
+        it('Can import the package as an ES module', async function () {
+            const { default: appBusFactory } = await import('app-bus');
             expect(appBusFactory).to.have.property('new');
         });
         it('and use it to create an instance.', function () {

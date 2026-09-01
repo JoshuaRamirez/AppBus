@@ -14,6 +14,7 @@ AppBus is tiny, synchronous and dependency free. It supports typed events and wo
 - [Quick Start](#quick-start)
 - [TypeScript Example](#typescript-example)
 - [API Reference](#api-reference)
+- [Tests](#tests)
 - [Release Process](#release-process)
 - [Release Notes](#release-notes)
 - [Contributing](#contributing)
@@ -45,6 +46,8 @@ bus.publish('greet').with('hello').now();
 
 ## TypeScript Example
 ```ts
+import AppBusFactory from 'app-bus';
+
 interface Events {
   'user.created': { id: number };
   'user.deleted': { id: number };
@@ -69,33 +72,34 @@ typedBus.publish('user.created').with({ id: 1 }).now();
   - `.post()` – store a publication for the next subscription.
 - `clear.subscriptions.byEventName(name)` – Remove subscribers for a name.
 - `clear.queue.all()` / `clear.posts.all()` – Reset queued or posted events.
+
 ## Tests
 Run `npm test` to compile and execute the mocha test suite.
 
 ## Release Process
-Run `npm run release` to build and publish the package. Append `--dry-run` or set `DRY_RUN=1` to test the release without publishing. Update `package.json` with a new version, add release notes, and tag the commit (for example `v2.3.1`).
+Update the version and release notes, then run `npm run release -- --dry-run` to validate the exact npm artifact. Commit and tag the release (for example `v2.3.1`) before running `npm run release`. Publishing requires an npm account with access to `app-bus`; use `npm login` first when needed.
 
 ## Release Notes
-```text
 ### 2.3.1
 - Added ISC license
 - Trimmed sources from the npm package
 - Documented the release process
 - Added build, npm and license badges
 - CI now runs `npm audit`
-```
-Past release notes can be found in the [CHANGELOG](#release-notes) section below.
+- Fixed native ES module resolution
+- Added consumer-level CommonJS and ESM package tests
+- Hardened the publish lifecycle and cleared dependency audit findings
+
+### 2.3.0
+- Added typed events and generics for TypeScript.
+- Introduced asynchronous publishing support.
+- Improved and consolidated unit test coverage.
 
 ### 2.2.0
 - Ported the library to TypeScript.
 - Builds now output both CommonJS and ES modules.
 - Added a compatibility wrapper for `require`.
 - Dropped the Grunt/Babel build.
-
-### 2.3.0
-- Added typed events and generics for TypeScript.
-- Introduced asynchronous publishing support.
-- Improved and consolidated unit test coverage.
 
 ### 2.1.1
 - Documentation updates only.
@@ -115,7 +119,6 @@ Past release notes can be found in the [CHANGELOG](#release-notes) section below
 
 ### 1.0.0
 - Initial release with publish/subscribe API and duplicate subscription handling.
-```
 
 ## Contributing
 Pull requests are welcome. Please maintain the existing coding style and include unit tests for any changes. Run `npm test` and `npm run build` before submitting.

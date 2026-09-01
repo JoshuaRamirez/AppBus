@@ -1,13 +1,21 @@
 {
   "name": "app-bus",
   "version": "2.3.1",
-  "description": "An asynchronous application event bus for javascript designed to work with the pub/sub paradigm.",
+  "description": "A dependency-free application event bus with typed publish/subscribe for JavaScript and TypeScript.",
   "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build:cjs": "tsc -p tsconfig.json",
-    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:esm": "tsc -p tsconfig.esm.json && node scripts/write-esm-package.js",
     "build": "npm run build:cjs && npm run build:esm",
-    "test": "npm run build && mocha test/**/*.js",
+    "test:types": "tsc -p tsconfig.types.json",
+    "test": "npm run build && mocha test/**/*.js && npm run test:types",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm audit --audit-level=high && npm test",
     "release": "node scripts/publish.js"
   },
   "repository": {
@@ -24,19 +32,19 @@
     "Subscriptions",
     "Bus"
   ],
-  "author": "Joshua Ramirez <joshuaramirez2048@gmail.com",
+  "author": "Joshua Ramirez <joshuaramirez2048@gmail.com>",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/JoshuaRamirez/AppBus/issues"
   },
   "homepage": "https://github.com/JoshuaRamirez/AppBus#readme",
   "devDependencies": {
-    "chai": "^5.2.0",
-    "mocha": "^10.2.0",
-    "typescript": "^5.4.5",
-    "@types/node": "^22.0.0",
+    "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.1",
-    "@types/chai": "^5.2.2"
+    "@types/node": "^22.0.0",
+    "chai": "^5.2.0",
+    "mocha": "^12.0.0",
+    "typescript": "^5.4.5"
   },
   "standard": {
     "parser": "babel-eslint",
@@ -46,10 +54,17 @@
       "TEST"
     ]
   },
-  "module": "./dist/esm/index.js",
-  "types": "./dist/cjs/index.d.ts",
   "exports": {
-    "import": "./dist/esm/index.js",
-    "require": "./dist/cjs/index.js"
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      },
+      "default": "./dist/cjs/index.js"
+    }
   }
 }

@@ -9,7 +9,6 @@ function run(cmd) {
 }
 
 try {
-  run('npm run build');
   const publishCmd = dryRun ? 'npm publish --dry-run' : 'npm publish';
   console.log(`\nExecuting: ${publishCmd}\n`);
   run(publishCmd);

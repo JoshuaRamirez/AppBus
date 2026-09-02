@@ -23,9 +23,10 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.esm.json --noEmit",
     "test:unit": "mocha \"test/**/*.js\"",
-    "test:coverage": "npm run build && c8 --reporter=text --reporter=lcov --include=dist/cjs/**/*.js mocha \"test/**/*.js\"",
-    "check:package": "npm run build && publint && attw --pack .",
-    "check": "npm run lint && npm run typecheck && npm test && npm run check:package"
+    "test:coverage": "npm run build && c8 --reporter=text --reporter=lcov --include=dist/cjs/**/*.js --check-coverage --lines 95 --branches 90 --functions 95 --statements 95 mocha \"test/**/*.js\"",
+    "check:package": "npm run build && publint && attw --pack . && node scripts/smoke-package.js",
+    "check": "npm run lint && npm run typecheck && npm run test:coverage && npm run test:types && npm run check:package && npm run release:notes",
+    "release:notes": "node scripts/release-notes.js"
   },
   "repository": {
     "type": "git",

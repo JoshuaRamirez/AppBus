@@ -77,15 +77,11 @@ an untyped bus that accepts any event name with any payload. The in-memory store
 untyped in both cases; the map exists only at compile time. The required-payload rule
 relies on `strictNullChecks`; with it off, TypeScript allows `.now()` on any event.
 
-The bus type is not exported. Where a type annotation is needed, for example a
-constructor parameter, take it from the instance:
-
 ```ts
-const bus = AppBusFactory.new<Events>();
-export type Bus = typeof bus;
+import type { TypedAppBus } from '@redjay/app-bus';
 
-class Widget {
-  constructor(private readonly bus: Bus) {}
+function makeBus<E extends object>(): TypedAppBus<E> {
+  return AppBusFactory.new<E>();
 }
 ```
 
@@ -115,6 +111,10 @@ If a subscriber throws while a queued publication is being replayed, the publica
 - `clear.subscriptions.all()` / `clear.subscriptions.byEventName(event)` – Remove subscriptions.
 - `clear.posts.all()` / `clear.posts.byEventName(event)` – Discard stored posts.
 - `clear.queue.all()` / `clear.queue.byEventName(event)` – Discard queued publications.
+
+### Exported types
+- `TypedAppBus<Events>` – The bus interface, for annotating variables or wrapping the factory.
+- `UntypedEvents` – The map used when `new()` is called without one: any event name, any payload.
 
 ## Tests
 - `npm test` – build, run the mocha suite, and type-check the consumer tests.
@@ -158,13 +158,13 @@ Unlike npmjs, a local registry lets you `npm unpublish --force` and republish th
 
 ## Release Notes
 ### 3.0.0
-First version published under `@redjay/app-bus`. The unscoped `app-bus` package ends at 2.1.1 and receives no further releases. The event map stays optional: `AppBusFactory.new()` without one is an untyped bus, as in 2.x.
+First version published under `@redjay/app-bus`. The unscoped `app-bus` package ends at 2.1.1 and receives no further releases. The event map stays optional: `AppBusFactory.new()` without one is an untyped bus, as in 2.x, and `UntypedEvents` names that default.
 
 Breaking changes for TypeScript consumers:
 - The typed API is event-first: `subscribe(event, fn)`, `once(event, fn)`, `unsubscribe(event, fn)`. The curried `.to()` / `.from()` form remains available to JavaScript callers only.
 - `unSubscribe` is renamed `unsubscribe` to match `unsubscribeAll`. The old spelling still works but is marked deprecated.
 - Events with a required payload must call `.with(payload)` before `.now()`, `.post()`, `.async()` or `.queue`. A union of event names is checked per member.
-- CommonJS type declarations use `export =`. The `TypedAppBus` interface is no longer exported; annotate with `typeof bus` instead.
+- CommonJS type declarations use `export =`; `TypedAppBus` is exported as a type from both entry points.
 - `getSubscriptions()` snapshots expose only `eventName` and `subscriber`.
 - Package metadata declares `engines.node >= 20`, `type: commonjs`, and `sideEffects: false`.
 - The exports map exposes `./package.json` for tooling that reads a dependency's manifest.

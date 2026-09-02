@@ -98,11 +98,9 @@ interface ClearOptions<Events extends object> {
 
 /**
  * An in-memory publish/subscribe bus. `Events` maps event names to payload
- * types; every method infers its payload type from the event name. Not
- * exported: the type is what `AppBusFactory.new()` returns, and callers that
- * need to name it use `typeof bus`.
+ * types; every method infers its payload type from the event name.
  */
-interface TypedAppBus<Events extends object> {
+export interface TypedAppBus<Events extends object> {
     /**
      * Register `subscriber` for `eventName`. Registering the same function
      * twice for the same event is ignored. Any posted publication for the event
@@ -155,7 +153,7 @@ interface TypedAppBus<Events extends object> {
  * a map; the in-memory store is untyped either way.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UntypedEvents = Record<string, any>;
+export type UntypedEvents = Record<string, any>;
 
 function AppBus() {
     const postedPublications: Publication[] = [];

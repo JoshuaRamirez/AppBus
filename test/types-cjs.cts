@@ -1,9 +1,10 @@
 import AppBusFactory = require('@redjay/app-bus');
-import type { TypedAppBus } from '@redjay/app-bus';
 
 interface Events {
   ready: void;
 }
 
-const bus: TypedAppBus<Events> = AppBusFactory.new<Events>();
-bus.publish('ready').now();
+const bus = AppBusFactory.new<Events>();
+type Bus = typeof bus;
+const same: Bus = bus;
+same.publish('ready').now();

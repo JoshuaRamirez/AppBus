@@ -1,5 +1,4 @@
 import AppBusFactory from '@redjay/app-bus';
-import type { TypedAppBus } from '@redjay/app-bus';
 
 interface Events {
   'user.created': { id: number };
@@ -45,12 +44,23 @@ const subscriptions = bus.getSubscriptions('user.created');
 // @ts-expect-error Subscription snapshots are immutable.
 subscriptions[0].eventName = 'user.renamed';
 
-// Generic wrappers around the factory compile.
-function makeBus<E extends object>(): TypedAppBus<E> {
+// Generic wrappers around the factory compile; the bus type is inferred.
+function makeBus<E extends object>() {
   return AppBusFactory.new<E>();
 }
 const wrapped = makeBus<Events>();
 wrapped.publish('sync.completed').now();
+
+// Callers name the bus type with typeof, not an exported interface.
+type Bus = typeof bus;
+class Widget {
+  constructor(private readonly bus: Bus) {}
+  fire() { this.bus.publish('user.created').with({ id: 9 }).now(); }
+}
+new Widget(bus).fire();
+type WrappedBus = ReturnType<typeof makeBus<Events>>;
+const alias: WrappedBus = wrapped;
+void alias;
 
 // Generic emit helpers compile: `.with(...)` is always available.
 function emit<K extends keyof Events>(eventName: K, payload: Events[K]) {

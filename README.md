@@ -47,7 +47,7 @@ bus.publish('greet').with('hello').now();
 ```
 
 JavaScript callers may also use the legacy curried form, `bus.subscribe(fn).to('greet')`
-and `bus.unSubscribe(fn).from('greet')`. That form is not part of the TypeScript
+and `bus.unsubscribe(fn).from('greet')`. That form is not part of the TypeScript
 API and is kept only for backward compatibility.
 
 ## TypeScript Example
@@ -82,7 +82,7 @@ function makeBus<E extends object>(): TypedAppBus<E> {
 - `AppBusFactory.new<T>()` – Create a bus using the required TypeScript event map.
 - `subscribe(event, fn)` – Register a subscriber with an inferred payload type. Duplicate registrations of the same function are ignored.
 - `once(event, fn)` – Subscribe for a single publication. A once and a persistent subscription of the same function may coexist.
-- `unSubscribe(event, fn)` – Remove every subscription of `fn` for the event.
+- `unsubscribe(event, fn)` – Remove every subscription of `fn` for the event. `unSubscribe` remains as a deprecated alias.
 - `getSubscriptions(event?)` – Snapshot of `{ eventName, subscriber }` pairs.
 - `publish(event)` – Start a publication builder with helpers:
   - `.with(payload)` – attach data.
@@ -122,7 +122,8 @@ For a manual publish from a machine with `npm login`, `npm run release -- --dry-
 ### 3.0.0
 Breaking changes for TypeScript consumers:
 - `AppBusFactory.new<Events>()` requires an event map. A bus created without one cannot publish or subscribe; the compiler error names the fix.
-- The typed API is event-first: `subscribe(event, fn)`, `once(event, fn)`, `unSubscribe(event, fn)`. The curried `.to()` / `.from()` form remains available to JavaScript callers only.
+- The typed API is event-first: `subscribe(event, fn)`, `once(event, fn)`, `unsubscribe(event, fn)`. The curried `.to()` / `.from()` form remains available to JavaScript callers only.
+- `unSubscribe` is renamed `unsubscribe` to match `unsubscribeAll`. The old spelling still works but is marked deprecated.
 - Events with a required payload must call `.with(payload)` before `.now()`, `.post()`, `.async()` or `.queue`. A union of event names is checked per member.
 - CommonJS type declarations use `export =`; `TypedAppBus` is exported as a type from both entry points.
 - `getSubscriptions()` snapshots expose only `eventName` and `subscriber`.

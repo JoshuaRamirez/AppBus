@@ -88,6 +88,11 @@ export interface TypedAppBus<Events extends object> {
         eventName: K,
         subscriber: EventSubscriber<Events[K]>
     ): void;
+    unsubscribe<K extends EventName<Events>>(
+        eventName: K,
+        subscriber: EventSubscriber<Events[K]>
+    ): void;
+    /** @deprecated Use `unsubscribe`. Alias retained for 2.x compatibility. */
     unSubscribe<K extends EventName<Events>>(
         eventName: K,
         subscriber: EventSubscriber<Events[K]>
@@ -426,7 +431,7 @@ function AppBus() {
         addSubscription(subscriber, eventNameOrSubscriber, true);
     };
 
-    const unSubscribe = (eventNameOrSubscriber: string | RuntimeSubscriber, subscriber?: unknown) => {
+    const unsubscribe = (eventNameOrSubscriber: string | RuntimeSubscriber, subscriber?: unknown) => {
         if (typeof eventNameOrSubscriber === 'function') {
             return curryFrom(eventNameOrSubscriber);
         }
@@ -460,7 +465,8 @@ function AppBus() {
         subscribe,
         once,
         publish,
-        unSubscribe,
+        unsubscribe,
+        unSubscribe: unsubscribe,
         unsubscribeAll,
         getSubscriptions: getSubscriptionsList,
         clear: clearOptions

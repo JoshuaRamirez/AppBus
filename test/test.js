@@ -36,7 +36,7 @@ describe('AppBus', function () {
             expect(receivedPayload).to.equal(true);
         });
         it('un-subscribe,', function () {
-            appBus.unSubscribe(testSubscriber).from(testEventName);
+            appBus.unsubscribe(testSubscriber).from(testEventName);
         });
         it('and then ignore publications.', function () {
             appBus.publish(testEventName, false);
@@ -104,7 +104,7 @@ describe('AppBus', function () {
             expect(payloadReceivedCounter).to.equal(3);
         });
         it('Can un-subscribe and then queue without a payload only the latest out of several publications,', function () {
-            appBus.unSubscribe(testSubscriber).from(testEventName);
+            appBus.unsubscribe(testSubscriber).from(testEventName);
             publicationReceivedCounter = 0;
             appBus.publish(testEventName).queue.latest();
             appBus.publish(testEventName).queue.latest();
@@ -221,7 +221,7 @@ describe('AppBus', function () {
             payload1Received = false;
             payload2Received = false;
             payload3Received = false;
-            appBus.unSubscribe(testSubscriber1).from(testEventName1);
+            appBus.unsubscribe(testSubscriber1).from(testEventName1);
             appBus.subscribe(testSubscriber1).to(testEventName1);
             expect(payload1Received).to.equal(true);
             expect(payload2Received).to.equal(false);
@@ -285,7 +285,7 @@ describe('AppBus', function () {
             event1Received = false;
             event2Received = false;
             event3Received = false;
-            appBus.unSubscribe(testSubscriber1).from(testEventName1);
+            appBus.unsubscribe(testSubscriber1).from(testEventName1);
             appBus.subscribe(testSubscriber1).to(testEventName1);
             expect(event1Received).to.equal(true);
             expect(event2Received).to.equal(false);
@@ -643,7 +643,7 @@ describe('AppBus', function () {
 
             bus.subscribe('typed', subscriber);
             bus.publish('typed').with(1).now();
-            bus.unSubscribe('typed', subscriber);
+            bus.unsubscribe('typed', subscriber);
             bus.publish('typed').with(2).now();
 
             expect(received).to.deep.equal([1]);
@@ -687,7 +687,7 @@ describe('AppBus', function () {
             const subscriber = () => { called = true; };
 
             bus.once('once', subscriber);
-            bus.unSubscribe('once', subscriber);
+            bus.unsubscribe('once', subscriber);
             bus.publish('once').now();
 
             expect(called).to.equal(false);
@@ -819,7 +819,7 @@ describe('AppBus', function () {
             bus.publish('x').with(2).now();
             expect(got).to.deep.equal([1, 1, 2]);
 
-            bus.unSubscribe('x', fn);
+            bus.unsubscribe('x', fn);
             bus.publish('x').with(3).now();
             expect(got).to.deep.equal([1, 1, 2]);
         });
@@ -845,10 +845,25 @@ describe('AppBus', function () {
             bus.publish('q').with('A').queue.all();
             bus.publish('q').with('B').queue.all();
             expect(() => bus.subscribe('q', thrower)).to.throw('boom');
-            bus.unSubscribe('q', thrower);
+            bus.unsubscribe('q', thrower);
             bus.subscribe('q', payload => got.push(payload));
 
             expect(got).to.deep.equal(['A', 'B']);
+        });
+
+        it('keeps unSubscribe as an alias of unsubscribe', function () {
+            const bus = AppBusFactory.new();
+            let count = 0;
+            const fn = () => { count += 1; };
+
+            bus.subscribe('alias', fn);
+            bus.unSubscribe('alias', fn);
+            bus.publish('alias').now();
+            bus.subscribe(fn).to('alias');
+            bus.unSubscribe(fn).from('alias');
+            bus.publish('alias').now();
+
+            expect(count).to.equal(0);
         });
 
         it('exposes only eventName and subscriber on subscription snapshots', function () {

@@ -35,7 +35,7 @@ const renamedSubscriber = (payload: Events['user.renamed']) => {
   void payload.name;
 };
 bus.subscribe('user.renamed', renamedSubscriber);
-bus.unSubscribe('user.renamed', renamedSubscriber);
+bus.unsubscribe('user.renamed', renamedSubscriber);
 
 bus.publish('sync.completed').now();
 bus.publish('cache.updated').now();

@@ -73,7 +73,8 @@
         "default": "./dist/cjs/index.cjs"
       },
       "default": "./dist/cjs/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "type": "commonjs",
   "sideEffects": false,

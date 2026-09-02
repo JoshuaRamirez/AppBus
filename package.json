@@ -16,10 +16,16 @@
     "build:esm": "tsc -p tsconfig.esm.json && node scripts/write-esm-package.js",
     "build": "npm run build:cjs && npm run build:esm",
     "test:types": "tsc -p tsconfig.types.json",
-    "test": "npm run build && mocha test/**/*.js && npm run test:types",
+    "test": "npm run build && npm run test:unit && npm run test:types",
     "prepack": "npm run build",
-    "prepublishOnly": "npm audit --audit-level=high && npm test",
-    "release": "node scripts/publish.js"
+    "prepublishOnly": "npm audit --audit-level=high && npm run lint && npm test && publint",
+    "release": "node scripts/publish.js",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.esm.json --noEmit",
+    "test:unit": "mocha \"test/**/*.js\"",
+    "test:coverage": "npm run build && c8 --reporter=text --reporter=lcov --include=dist/cjs/**/*.js mocha \"test/**/*.js\"",
+    "check:package": "npm run build && publint && attw --pack .",
+    "check": "npm run lint && npm run typecheck && npm test && npm run check:package"
   },
   "repository": {
     "type": "git",
@@ -42,20 +48,18 @@
   },
   "homepage": "https://github.com/JoshuaRamirez/AppBus#readme",
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@eslint/js": "^10.0.1",
     "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.1",
     "@types/node": "^22.0.0",
+    "c8": "^12.0.0",
     "chai": "^5.2.0",
+    "eslint": "^10.9.1",
     "mocha": "^12.0.0",
-    "typescript": "^5.4.5"
-  },
-  "standard": {
-    "parser": "babel-eslint",
-    "globals": [
-      "DEV",
-      "PROD",
-      "TEST"
-    ]
+    "publint": "^0.3.24",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.69.0"
   },
   "exports": {
     ".": {

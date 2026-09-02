@@ -6,7 +6,7 @@
 
 An in-memory publish/subscribe bus for JavaScript and TypeScript.
 
-AppBus is tiny, synchronous and dependency free. It supports typed events and works in both Node.js and browsers.
+AppBus is tiny, synchronous and dependency free. It supports typed events and works in Node.js 20 or later and in browsers.
 
 Current releases are published as `@redjay/app-bus`. The unscoped `app-bus` package is retained as the legacy package name.
 
@@ -79,23 +79,40 @@ function makeBus<E extends object>(): TypedAppBus<E> {
 ```
 
 ## API Reference
-- `AppBusFactory.new<T>()` – Create a bus using the required TypeScript event map.
-- `subscribe(event, fn)` – Register a subscriber with an inferred payload type. Duplicate registrations of the same function are ignored.
-- `once(event, fn)` – Subscribe for a single publication. A once and a persistent subscription of the same function may coexist.
-- `unsubscribe(event, fn)` – Remove every subscription of `fn` for the event. `unSubscribe` remains as a deprecated alias.
-- `getSubscriptions(event?)` – Snapshot of `{ eventName, subscriber }` pairs.
-- `publish(event)` – Start a publication builder with helpers:
-  - `.with(payload)` – attach data.
-  - `.now()` – publish immediately.
-  - `.async()` – publish asynchronously.
-  - `.queue.all()` – queue multiple events until subscribed.
-  - `.queue.latest()` – keep only the most recent queued event.
-  - `.post()` – store a publication for the next subscription.
-- `clear.subscriptions.byEventName(name)` – Remove subscribers for a name.
-- `clear.queue.all()` / `clear.posts.all()` – Reset queued or posted events.
+
+### Creating a bus
+- `AppBusFactory.new<Events>()` – Create a bus. `Events` maps event names to payload types and is required in TypeScript.
+
+### Subscribing
+- `subscribe(event, fn)` – Register `fn` for `event`. The payload type is inferred from the event map. Registering the same function twice for the same event is ignored. Any posted publication for the event is delivered to the new subscriber immediately, followed by any queued publications.
+- `once(event, fn)` – Like `subscribe`, but the subscription is removed before its first delivery. A `once` and a persistent subscription of the same function may coexist.
+- `unsubscribe(event, fn)` – Remove every subscription of `fn` for `event`, whether persistent or `once`. `unSubscribe` remains as a deprecated alias.
+- `unsubscribeAll()` – Remove every subscription on the bus. Posted and queued publications are kept.
+- `getSubscriptions(event?)` – Read-only snapshot of `{ eventName, subscriber }` pairs, for one event or for the whole bus.
+
+### Publishing
+`publish(event)` returns a builder. Call `.with(payload)` to attach data, then choose a delivery mode. Events whose payload type is `void`, optional, or `any` may skip `.with(...)`.
+- `.now()` – Deliver synchronously to current subscribers. Nothing is stored.
+- `.async()` – Deliver in a microtask to whoever is subscribed when it runs.
+- `.post()` – Deliver to current subscribers, then keep the publication so every future subscriber to the event receives it on subscribe. Only the most recent post per event is kept.
+- `.queue.all()` – Deliver to current subscribers if any exist; otherwise store the publication until the next subscriber arrives, then deliver and discard it. Multiple queued publications are delivered in order.
+- `.queue.latest()` – Like `.queue.all()`, but drops any earlier queued publications for the same event first.
+
+If a subscriber throws while a queued publication is being replayed, the publication stays queued and the error propagates from `subscribe`.
+
+### Clearing
+- `clear.subscriptions.all()` / `clear.subscriptions.byEventName(event)` – Remove subscriptions.
+- `clear.posts.all()` / `clear.posts.byEventName(event)` – Discard stored posts.
+- `clear.queue.all()` / `clear.queue.byEventName(event)` – Discard queued publications.
+
+### Exported types
+- `TypedAppBus<Events>` – The bus interface, for annotating variables or wrapping the factory.
+- `EventMapRequired` – The placeholder event map used when `new()` is called without one. Its single event name is the compiler error message, so you should never need to reference it directly.
 
 ## Tests
 - `npm test` – build, run the mocha suite, and type-check the consumer tests.
+- `npm run test:unit` – the mocha suite alone, against the existing `dist` build.
+- `npm run test:types` – type-check the consumer tests in `test/` under CommonJS and ESM resolution.
 - `npm run lint` – ESLint over sources, tests, and scripts.
 - `npm run typecheck` – type-check both build targets without emitting.
 - `npm run test:coverage` – mocha under c8 with an lcov report in `coverage/`; fails below 95% lines and 90% branches.
@@ -120,6 +137,18 @@ Trusted publishing can only be configured for a package that already exists on t
 
 npm does not allow a fully unpublished package name to be republished for 24 hours, and a version number that was ever published cannot be reused.
 
+### Testing a release against a local registry
+To exercise the exact artifact before it reaches npmjs, publish it to a local registry such as [Verdaccio](https://verdaccio.org/) and install from there:
+
+```bash
+npx verdaccio                                   # serves http://localhost:4873
+npm adduser --registry http://localhost:4873    # once
+npm publish --registry http://localhost:4873
+npm install @redjay/app-bus --registry http://localhost:4873   # from a scratch project
+```
+
+Unlike npmjs, a local registry lets you `npm unpublish --force` and republish the same version while iterating. The `--registry` flag keeps your default registry untouched.
+
 ## Release Notes
 ### 3.0.0
 First version published under `@redjay/app-bus`. The unscoped `app-bus` package ends at 2.1.1 and receives no further releases.
@@ -132,6 +161,7 @@ Breaking changes for TypeScript consumers:
 - CommonJS type declarations use `export =`; `TypedAppBus` is exported as a type from both entry points.
 - `getSubscriptions()` snapshots expose only `eventName` and `subscriber`.
 - Package metadata declares `engines.node >= 20`, `type: commonjs`, and `sideEffects: false`.
+- The exports map exposes `./package.json` for tooling that reads a dependency's manifest.
 
 Fixes:
 - A `once` subscriber could be delivered twice when an earlier subscriber republished the same event.
@@ -186,4 +216,4 @@ Fixes:
 - Initial release with publish/subscribe API and duplicate subscription handling.
 
 ## Contributing
-Pull requests are welcome. Please maintain the existing coding style and include unit tests for any changes. Run `npm test` and `npm run build` before submitting.
+Pull requests are welcome. Please maintain the existing coding style and include unit tests for any changes. Run `npm run check` before submitting; it is the same gate CI and the release workflow apply. Commit messages follow the `type(scope): summary` convention used in the history, for example `fix(bus): ...` or `docs: ...`.

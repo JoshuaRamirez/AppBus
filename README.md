@@ -25,7 +25,7 @@ Current releases are published as `@redjay/app-bus`. The unscoped `app-bus` pack
 - Synchronous publish/subscribe API
 - Queue or post events for future subscribers
 - Optional asynchronous publishing using microtasks
-- Strongly typed events when used with TypeScript
+- Mandatory event maps and exact payload inference when used with TypeScript
 
 ## Installation
 ```bash
@@ -39,12 +39,16 @@ import AppBusFactory from '@redjay/app-bus'; // or const AppBusFactory = require
 
 const bus = AppBusFactory.new();
 
-bus.subscribe(payload => {
+bus.subscribe('greet', payload => {
   console.log('greeted:', payload);
-}).to('greet');
+});
 
 bus.publish('greet').with('hello').now();
 ```
+
+JavaScript callers may also use the legacy curried form, `bus.subscribe(fn).to('greet')`
+and `bus.unSubscribe(fn).from('greet')`. That form is not part of the TypeScript
+API and is kept only for backward compatibility.
 
 ## TypeScript Example
 ```ts
@@ -56,15 +60,30 @@ interface Events {
 }
 
 const typedBus = AppBusFactory.new<Events>();
-typedBus.subscribe(e => console.log(e.id)).to('user.created');
+typedBus.subscribe('user.created', e => console.log(e.id));
 typedBus.publish('user.created').with({ id: 1 }).now();
 ```
 
+TypeScript callers must provide an event map. Event names, subscriber payloads, and
+published payloads are then checked together. Events declared as `void` can be
+published without `.with(...)`. Using `any` as a payload type explicitly opts that
+event out of payload checking. A bus created without an event map cannot publish or
+subscribe to anything; the compiler error names the fix.
+
+```ts
+import type { TypedAppBus } from '@redjay/app-bus';
+
+function makeBus<E extends object>(): TypedAppBus<E> {
+  return AppBusFactory.new<E>();
+}
+```
+
 ## API Reference
-- `AppBusFactory.new<T>()` – Create a new bus. Optional generic `T` gives type safety.
-- `subscribe(fn).to(event)` – Register a subscriber for an event.
-- `once(fn).to(event)` – Subscribe for a single publication.
-- `unSubscribe(fn).from(event)` – Remove a subscriber.
+- `AppBusFactory.new<T>()` – Create a bus using the required TypeScript event map.
+- `subscribe(event, fn)` – Register a subscriber with an inferred payload type. Duplicate registrations of the same function are ignored.
+- `once(event, fn)` – Subscribe for a single publication. A once and a persistent subscription of the same function may coexist.
+- `unSubscribe(event, fn)` – Remove every subscription of `fn` for the event.
+- `getSubscriptions(event?)` – Snapshot of `{ eventName, subscriber }` pairs.
 - `publish(event)` – Start a publication builder with helpers:
   - `.with(payload)` – attach data.
   - `.now()` – publish immediately.
@@ -79,9 +98,25 @@ typedBus.publish('user.created').with({ id: 1 }).now();
 Run `npm test` to compile and execute the mocha test suite.
 
 ## Release Process
-Update the version and release notes, then run `npm run release -- --dry-run` to validate the exact npm artifact. Commit and tag the release (for example `v2.3.2`) before running `npm run release`. Publishing requires an npm account with access to `@redjay/app-bus`; use `npm login` first when needed.
+Update the version and release notes, then run `npm run release -- --dry-run` to validate the exact npm artifact. Commit and tag the release (for example `v3.0.0`) before running `npm run release`. Publishing requires an npm account with access to `@redjay/app-bus`; use `npm login` first when needed.
 
 ## Release Notes
+### 3.0.0
+Breaking changes for TypeScript consumers:
+- `AppBusFactory.new<Events>()` requires an event map. A bus created without one cannot publish or subscribe; the compiler error names the fix.
+- The typed API is event-first: `subscribe(event, fn)`, `once(event, fn)`, `unSubscribe(event, fn)`. The curried `.to()` / `.from()` form remains available to JavaScript callers only.
+- Events with a required payload must call `.with(payload)` before `.now()`, `.post()`, `.async()` or `.queue`. A union of event names is checked per member.
+- CommonJS type declarations use `export =`; `TypedAppBus` is exported as a type from both entry points.
+- `getSubscriptions()` snapshots expose only `eventName` and `subscriber`.
+
+Fixes:
+- A `once` subscriber could be delivered twice when an earlier subscriber republished the same event.
+- Subscribing during delivery of a posted publication re-delivered it to existing subscribers and could overflow the stack.
+- A queued publication is retained when the subscriber throws during replay.
+- `once` and `subscribe` with the same function no longer silently drop one another.
+- Generic wrappers around `AppBusFactory.new` and generic `publish(k).with(p)` helpers compile again.
+- The CommonJS entry is `dist/cjs/index.cjs`; the ESM build no longer emits stray `.cjs` files.
+
 ### 2.3.2
 - Moved current releases to the `@redjay/app-bus` package.
 - Updated package metadata, documentation, and consumer tests for the scoped name.

@@ -108,6 +108,7 @@ Breaking changes for TypeScript consumers:
 - Events with a required payload must call `.with(payload)` before `.now()`, `.post()`, `.async()` or `.queue`. A union of event names is checked per member.
 - CommonJS type declarations use `export =`; `TypedAppBus` is exported as a type from both entry points.
 - `getSubscriptions()` snapshots expose only `eventName` and `subscriber`.
+- Package metadata declares `engines.node >= 20`, `type: commonjs`, and `sideEffects: false`.
 
 Fixes:
 - A `once` subscriber could be delivered twice when an earlier subscriber republished the same event.

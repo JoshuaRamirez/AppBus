@@ -69,5 +69,10 @@
       },
       "default": "./dist/cjs/index.cjs"
     }
+  },
+  "type": "commonjs",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
   }
 }

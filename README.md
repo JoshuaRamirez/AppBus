@@ -70,7 +70,8 @@ subscriber payloads, and published payloads are checked together. Events declare
 `void` can be published without `.with(...)`. Using `any` as a payload type opts
 that event out of payload checking. Calling `AppBusFactory.new()` without a map gives
 an untyped bus that accepts any event name with any payload. The in-memory store is
-untyped in both cases; the map exists only at compile time.
+untyped in both cases; the map exists only at compile time. The required-payload rule
+relies on `strictNullChecks`; with it off, TypeScript allows `.now()` on any event.
 
 ```ts
 import type { TypedAppBus } from '@redjay/app-bus';

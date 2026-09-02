@@ -66,10 +66,12 @@ bus.publish(createdOrCompleted).now();
 declare const completedOrUpdated: 'sync.completed' | 'cache.updated';
 bus.publish(completedOrUpdated).now();
 
-// @ts-expect-error A bus created without an event map cannot publish anything.
-AppBusFactory.new().publish('greet');
-// @ts-expect-error A bus created without an event map cannot subscribe to anything.
-AppBusFactory.new().subscribe('greet', () => {});
+// A bus created without an event map is untyped: any name, any payload.
+const untyped = AppBusFactory.new();
+untyped.subscribe('greet', payload => void payload);
+untyped.publish('greet').now();
+untyped.publish('greet').with({ anything: true }).now();
+untyped.once('other', (payload: number) => void payload);
 // @ts-expect-error Unknown event names are rejected.
 bus.publish('user.missing');
 // @ts-expect-error Events with required payloads cannot publish without one.

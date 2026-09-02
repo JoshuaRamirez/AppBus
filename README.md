@@ -25,7 +25,7 @@ Current releases are published as `@redjay/app-bus`. The unscoped `app-bus` pack
 - Synchronous publish/subscribe API
 - Queue or post events for future subscribers
 - Optional asynchronous publishing using microtasks
-- Mandatory event maps and exact payload inference when used with TypeScript
+- Optional event map for TypeScript: supply one and every publish and subscribe is checked against it; omit it for an untyped bus
 
 ## Installation
 ```bash
@@ -64,11 +64,13 @@ typedBus.subscribe('user.created', e => console.log(e.id));
 typedBus.publish('user.created').with({ id: 1 }).now();
 ```
 
-TypeScript callers must provide an event map. Event names, subscriber payloads, and
-published payloads are then checked together. Events declared as `void` can be
-published without `.with(...)`. Using `any` as a payload type explicitly opts that
-event out of payload checking. A bus created without an event map cannot publish or
-subscribe to anything; the compiler error names the fix.
+Supplying an event map makes the bus type-safe at its two doors: `publish` is
+checked against the map on the way in and `subscribe` on the way out. Event names,
+subscriber payloads, and published payloads are checked together. Events declared as
+`void` can be published without `.with(...)`. Using `any` as a payload type opts
+that event out of payload checking. Calling `AppBusFactory.new()` without a map gives
+an untyped bus that accepts any event name with any payload. The in-memory store is
+untyped in both cases; the map exists only at compile time.
 
 ```ts
 import type { TypedAppBus } from '@redjay/app-bus';
@@ -81,7 +83,7 @@ function makeBus<E extends object>(): TypedAppBus<E> {
 ## API Reference
 
 ### Creating a bus
-- `AppBusFactory.new<Events>()` – Create a bus. `Events` maps event names to payload types and is required in TypeScript.
+- `AppBusFactory.new<Events>()` – Create a bus. `Events` maps event names to payload types. Omit it for an untyped bus.
 
 ### Subscribing
 - `subscribe(event, fn)` – Register `fn` for `event`. The payload type is inferred from the event map. Registering the same function twice for the same event is ignored. Any posted publication for the event is delivered to the new subscriber immediately, followed by any queued publications.
@@ -107,7 +109,7 @@ If a subscriber throws while a queued publication is being replayed, the publica
 
 ### Exported types
 - `TypedAppBus<Events>` – The bus interface, for annotating variables or wrapping the factory.
-- `EventMapRequired` – The placeholder event map used when `new()` is called without one. Its single event name is the compiler error message, so you should never need to reference it directly.
+- `UntypedEvents` – The map used when `new()` is called without one: any event name, any payload.
 
 ## Tests
 - `npm test` – build, run the mocha suite, and type-check the consumer tests.
@@ -154,12 +156,12 @@ Unlike npmjs, a local registry lets you `npm unpublish --force` and republish th
 First version published under `@redjay/app-bus`. The unscoped `app-bus` package ends at 2.1.1 and receives no further releases.
 
 Breaking changes for TypeScript consumers:
-- `AppBusFactory.new<Events>()` requires an event map. A bus created without one cannot publish or subscribe; the compiler error names the fix.
 - The typed API is event-first: `subscribe(event, fn)`, `once(event, fn)`, `unsubscribe(event, fn)`. The curried `.to()` / `.from()` form remains available to JavaScript callers only.
 - `unSubscribe` is renamed `unsubscribe` to match `unsubscribeAll`. The old spelling still works but is marked deprecated.
 - Events with a required payload must call `.with(payload)` before `.now()`, `.post()`, `.async()` or `.queue`. A union of event names is checked per member.
 - CommonJS type declarations use `export =`; `TypedAppBus` is exported as a type from both entry points.
 - `getSubscriptions()` snapshots expose only `eventName` and `subscriber`.
+- The event map stays optional. `AppBusFactory.new()` without one is an untyped bus, as in 2.x; `UntypedEvents` names that default.
 - Package metadata declares `engines.node >= 20`, `type: commonjs`, and `sideEffects: false`.
 - The exports map exposes `./package.json` for tooling that reads a dependency's manifest.
 

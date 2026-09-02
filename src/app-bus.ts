@@ -148,13 +148,12 @@ export interface TypedAppBus<Events extends object> {
 }
 
 /**
- * Default event map used when `AppBusFactory.new()` is called without one.
- * Its single event name doubles as the error message TypeScript reports when
- * the resulting bus is used, so the mistake is caught at the first call site.
+ * Event map used when `AppBusFactory.new()` is called without one: any event
+ * name, any payload. Type checking at the bus boundary is opt-in by supplying
+ * a map; the in-memory store is untyped either way.
  */
-export interface EventMapRequired {
-    'AppBusFactory.new() requires an event map: AppBusFactory.new<Events>()': never;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type UntypedEvents = Record<string, any>;
 
 function AppBus() {
     const postedPublications: Publication[] = [];
@@ -516,10 +515,10 @@ function AppBus() {
 
 const AppBusFactory = {
     /**
-     * Create a bus. `E` maps event names to payload types and is required in
-     * TypeScript; omitting it yields a bus that cannot publish or subscribe.
+     * Create a bus. `E` maps event names to payload types; every method on the
+     * returned bus is checked against it. Omit it for an untyped bus.
      */
-    new: <E extends object = EventMapRequired>() => {
+    new: <E extends object = UntypedEvents>() => {
         return AppBus() as unknown as TypedAppBus<E>;
     }
 };

@@ -170,7 +170,7 @@ Breaking changes for TypeScript consumers:
 - The typed API is event-first: `subscribe(event, fn)`, `once(event, fn)`, `unsubscribe(event, fn)`. The curried `.to()` / `.from()` form remains available to JavaScript callers only.
 - `unSubscribe` is renamed `unsubscribe` to match `unsubscribeAll`. The old spelling still works but is marked deprecated.
 - Events with a required payload must call `.with(payload)` before `.now()`, `.post()`, `.async()` or `.queue`. A union of event names is checked per member.
-- CommonJS type declarations use `export =`; `TypedAppBus` is exported as a type from both entry points.
+- CommonJS type declarations use `export =`. `TypedAppBus` remains importable as a type from both entry points, alongside the new `UntypedEvents`.
 - `getSubscriptions()` snapshots expose only `eventName` and `subscriber`.
 - Package metadata declares `engines.node >= 20`, `type: commonjs`, and `sideEffects: false`.
 - The exports map exposes `./package.json` for tooling that reads a dependency's manifest.

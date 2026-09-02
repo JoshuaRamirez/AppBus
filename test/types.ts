@@ -52,6 +52,12 @@ function makeBus<E extends object>(): TypedAppBus<E> {
 const wrapped = makeBus<Events>();
 wrapped.publish('sync.completed').now();
 
+// typeof on an instance is the same type as the exported interface.
+type Bus = typeof bus;
+const viaTypeof: Bus = bus;
+const viaInterface: TypedAppBus<Events> = viaTypeof;
+void viaInterface;
+
 // Generic emit helpers compile: `.with(...)` is always available.
 function emit<K extends keyof Events>(eventName: K, payload: Events[K]) {
   bus.publish(eventName).with(payload).now();

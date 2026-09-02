@@ -77,12 +77,18 @@ an untyped bus that accepts any event name with any payload. The in-memory store
 untyped in both cases; the map exists only at compile time. The required-payload rule
 relies on `strictNullChecks`; with it off, TypeScript allows `.now()` on any event.
 
+Where a type annotation is needed, for example a constructor parameter, use the
+exported `TypedAppBus` interface, or take the type from the instance with `typeof`:
+
 ```ts
 import type { TypedAppBus } from '@redjay/app-bus';
 
-function makeBus<E extends object>(): TypedAppBus<E> {
-  return AppBusFactory.new<E>();
+class Widget {
+  constructor(private readonly bus: TypedAppBus<Events>) {}
 }
+
+const bus = AppBusFactory.new<Events>();
+export type Bus = typeof bus;   // equivalent, without importing the type
 ```
 
 ## API Reference
@@ -113,7 +119,7 @@ If a subscriber throws while a queued publication is being replayed, the publica
 - `clear.queue.all()` / `clear.queue.byEventName(event)` – Discard queued publications.
 
 ### Exported types
-- `TypedAppBus<Events>` – The bus interface, for annotating variables or wrapping the factory.
+- `TypedAppBus<Events>` – The bus interface, for annotating parameters and fields or wrapping the factory. `typeof bus` on an instance yields the same type.
 - `UntypedEvents` – The map used when `new()` is called without one: any event name, any payload.
 
 ## Tests

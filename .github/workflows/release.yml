@@ -9,10 +9,11 @@ permissions:
 
 jobs:
   verify:
+    name: Verify release candidate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
@@ -24,10 +25,18 @@ jobs:
             echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $pkg_version"
             exit 1
           fi
+      - name: Version must not already be published
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if npm view "@redjay/app-bus@${version}" version >/dev/null 2>&1; then
+            echo "::error::@redjay/app-bus@${version} is already on the registry"
+            exit 1
+          fi
       - run: npm ci
       - run: npm run check
 
   publish:
+    name: Publish to npm and GitHub
     needs: verify
     runs-on: ubuntu-latest
     environment: npm
@@ -37,13 +46,15 @@ jobs:
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
-      # npm >= 11.5 is required for trusted publishing (OIDC).
-      - run: npm install -g npm@latest
+      - name: npm must support trusted publishing (>= 11.5.1)
+        run: |
+          npm --version
+          node -e "const [a,b,c]=require('child_process').execSync('npm --version').toString().trim().split('.').map(Number); if (a<11||(a===11&&(b<5||(b===5&&c<1)))) { console.error('npm too old for trusted publishing'); process.exit(1) }"
       - run: npm ci
       # Trusted publishing needs no token. A classic NPM_TOKEN secret is
       # honoured as a fallback when one is configured.
@@ -52,7 +63,21 @@ jobs:
         run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
       - name: Publish to npm with provenance
         run: npm publish --provenance --access public
+      - name: Confirm the version is on the registry
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          for _ in 1 2 3 4 5 6; do
+            if [ "$(npm view "@redjay/app-bus@${version}" version 2>/dev/null)" = "$version" ]; then
+              echo "@redjay/app-bus@${version} is live"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::@redjay/app-bus@${version} not visible on the registry after publish"
+          exit 1
+      - name: Extract release notes from README
+        run: npm run --silent release:notes -- "${GITHUB_REF_NAME#v}" > release-notes.md
       - name: Create GitHub release
-        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}

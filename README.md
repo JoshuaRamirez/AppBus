@@ -29,7 +29,7 @@ Current releases are published as `@redjay/app-bus`. The unscoped `app-bus` pack
 
 ## Installation
 ```bash
-npm install @redjay/app-bus --save
+npm install @redjay/app-bus
 ```
 Both ESM and CommonJS builds are provided. Use `import` or `require` depending on your environment.
 
@@ -120,7 +120,7 @@ If a subscriber throws while a queued publication is being replayed, the publica
 - `npm run release:notes` – print the README release-notes section for the current version; fails if it is missing.
 - `npm run check` – everything above; this is what the release workflow runs.
 
-CI runs lint, typecheck and coverage, the test matrix on Node 20, 22, and 24 on Linux plus Node 24 on Windows and macOS, and the package checks on every push and pull request. Actions are pinned to commit SHAs; Dependabot opens weekly grouped update PRs for npm and GitHub Actions.
+CI runs lint, typecheck and coverage, the test matrix on Node 20, 22, and 24 on Linux plus Node 24 on Windows and macOS, and the package checks on every push to `master` and on every pull request. Actions are pinned to commit SHAs; Dependabot opens weekly grouped update PRs for npm and GitHub Actions.
 
 ## Release Process
 Releases are published by GitHub Actions when a `v*` tag is pushed.

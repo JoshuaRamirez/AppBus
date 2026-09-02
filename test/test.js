@@ -1,7 +1,7 @@
 'use strict';
 
 const chai = require('chai');
-const AppBusFactory = require('../dist/cjs/index.js');
+const AppBusFactory = require('../dist/cjs/index.cjs');
 
 const expect = chai.expect;
 
@@ -134,6 +134,31 @@ describe('AppBus', function () {
         });
         it('but each one will have been processed because a subscription exists.', function () {
             expect(publicationReceivedCounter).to.equal(3);
+        });
+        it('does not redeliver a queued publication during reentrant subscription', function () {
+            const bus = AppBusFactory.new();
+            const received = [];
+            const secondSubscriber = payload => received.push(['second', payload]);
+            const firstSubscriber = payload => {
+                received.push(['first', payload]);
+                bus.subscribe('reentrant', secondSubscriber);
+            };
+
+            bus.publish('reentrant').with(1).queue.all();
+            bus.subscribe('reentrant', firstSubscriber);
+
+            expect(received).to.deep.equal([['first', 1]]);
+        });
+        it('preserves queued publications left by a once subscription', function () {
+            const bus = AppBusFactory.new();
+            const received = [];
+
+            bus.publish('once-queue').with(1).queue.all();
+            bus.publish('once-queue').with(2).queue.all();
+            bus.once('once-queue', payload => received.push(payload));
+            bus.subscribe('once-queue', payload => received.push(payload));
+
+            expect(received).to.deep.equal([1, 2]);
         });
     });
 
@@ -611,6 +636,19 @@ describe('AppBus', function () {
     });
 
     describe('New Features:', function () {
+        it('supports the event-first subscription API', function () {
+            const bus = AppBusFactory.new();
+            const received = [];
+            const subscriber = value => received.push(value);
+
+            bus.subscribe('typed', subscriber);
+            bus.publish('typed').with(1).now();
+            bus.unSubscribe('typed', subscriber);
+            bus.publish('typed').with(2).now();
+
+            expect(received).to.deep.equal([1]);
+        });
+
         it('supports once subscriptions', function () {
             const bus = AppBusFactory.new();
             let counter = 0;
@@ -619,6 +657,40 @@ describe('AppBus', function () {
             bus.publish('once').now();
             bus.publish('once').now();
             expect(counter).to.equal(1);
+        });
+
+        it('removes once subscriptions before delivery', function () {
+            const bus = AppBusFactory.new();
+            let reentrantCalls = 0;
+            const reentrantSubscriber = () => {
+                reentrantCalls += 1;
+                bus.publish('reentrant').now();
+            };
+            bus.once('reentrant', reentrantSubscriber);
+            bus.publish('reentrant').now();
+            expect(reentrantCalls).to.equal(1);
+
+            let throwingCalls = 0;
+            const throwingSubscriber = () => {
+                throwingCalls += 1;
+                throw new Error('subscriber failed');
+            };
+            bus.once('throwing', throwingSubscriber);
+            expect(() => bus.publish('throwing').now()).to.throw('subscriber failed');
+            bus.publish('throwing').now();
+            expect(throwingCalls).to.equal(1);
+        });
+
+        it('can unsubscribe a once subscription before delivery', function () {
+            const bus = AppBusFactory.new();
+            let called = false;
+            const subscriber = () => { called = true; };
+
+            bus.once('once', subscriber);
+            bus.unSubscribe('once', subscriber);
+            bus.publish('once').now();
+
+            expect(called).to.equal(false);
         });
 
         it('supports async publishing', function (done) {
@@ -676,6 +748,116 @@ describe('AppBus', function () {
             const allSubs = bus.getSubscriptions();
             expect(subsE1[0].subscriber).to.equal(fn1);
             expect(allSubs.length).to.equal(2);
+            subsE1[0].eventName = 'E2';
+            expect(bus.getSubscriptions('E1')[0].eventName).to.equal('E1');
+        });
+
+        it('returns subscriptions for an empty event name', function () {
+            const bus = AppBusFactory.new();
+            bus.subscribe('', () => {});
+            bus.subscribe('other', () => {});
+
+            expect(bus.getSubscriptions('')).to.have.length(1);
+            expect(bus.getSubscriptions('')[0].eventName).to.equal('');
+        });
+    });
+
+    describe('Delivery Guarantees:', function () {
+        it('delivers a once subscription exactly once when an earlier subscriber republishes', function () {
+            const bus = AppBusFactory.new();
+            let republished = false;
+            let count = 0;
+
+            bus.subscribe('e', () => {
+                if (!republished) {
+                    republished = true;
+                    bus.publish('e').now();
+                }
+            });
+            bus.once('e', () => { count += 1; });
+            bus.publish('e').now();
+
+            expect(count).to.equal(1);
+        });
+
+        it('does not redeliver a posted publication during reentrant subscription', function () {
+            const bus = AppBusFactory.new();
+            const received = [];
+
+            bus.publish('P').with(1).post();
+            bus.subscribe('P', payload => {
+                received.push(['A', payload]);
+                bus.subscribe('P', inner => received.push(['B', inner]));
+            });
+
+            expect(received).to.deep.equal([['A', 1], ['B', 1]]);
+        });
+
+        it('does not overflow when a posted subscriber subscribes a fresh closure', function () {
+            const bus = AppBusFactory.new();
+            let deliveries = 0;
+
+            bus.publish('P').post();
+            bus.subscribe('P', () => {
+                deliveries += 1;
+                bus.subscribe('P', () => {});
+            });
+
+            expect(deliveries).to.equal(1);
+        });
+
+        it('allows once and persistent subscriptions of the same function to coexist', function () {
+            const bus = AppBusFactory.new();
+            const got = [];
+            const fn = payload => got.push(payload);
+
+            bus.once('x', fn);
+            bus.subscribe('x', fn);
+            expect(bus.getSubscriptions('x')).to.have.length(2);
+
+            bus.publish('x').with(1).now();
+            bus.publish('x').with(2).now();
+            expect(got).to.deep.equal([1, 1, 2]);
+
+            bus.unSubscribe('x', fn);
+            bus.publish('x').with(3).now();
+            expect(got).to.deep.equal([1, 1, 2]);
+        });
+
+        it('ignores duplicate once subscriptions of the same function', function () {
+            const bus = AppBusFactory.new();
+            let count = 0;
+            const fn = () => { count += 1; };
+
+            bus.once('x', fn);
+            bus.once('x', fn);
+            bus.publish('x').now();
+            bus.publish('x').now();
+
+            expect(count).to.equal(1);
+        });
+
+        it('keeps a queued publication when the subscriber throws during replay', function () {
+            const bus = AppBusFactory.new();
+            const got = [];
+            const thrower = () => { throw new Error('boom'); };
+
+            bus.publish('q').with('A').queue.all();
+            bus.publish('q').with('B').queue.all();
+            expect(() => bus.subscribe('q', thrower)).to.throw('boom');
+            bus.unSubscribe('q', thrower);
+            bus.subscribe('q', payload => got.push(payload));
+
+            expect(got).to.deep.equal(['A', 'B']);
+        });
+
+        it('exposes only eventName and subscriber on subscription snapshots', function () {
+            const bus = AppBusFactory.new();
+            const fn = () => {};
+
+            bus.subscribe('s', fn);
+
+            expect(bus.getSubscriptions('s')[0]).to.deep.equal({ eventName: 's', subscriber: fn });
         });
     });
 

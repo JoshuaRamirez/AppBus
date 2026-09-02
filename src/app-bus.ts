@@ -1,45 +1,113 @@
 interface Publication {
     eventName: string;
-    payload?: any;
+    payload?: unknown;
 }
+
+type RuntimeSubscriber = (payload?: unknown) => void;
 
 interface Subscription {
-    subscriber: (payload?: any) => void;
+    subscriber: RuntimeSubscriber;
     eventName: string;
-    send: (payload?: any) => void;
+    once: boolean;
+    send: RuntimeSubscriber;
 }
 
-export interface TypedAppBus<Events extends Record<string, any>> {
-    subscribe<K extends keyof Events>(
-        subscriber: (payload: Events[K]) => void
-    ): { to: (eventName: K) => void };
-    once<K extends keyof Events>(
-        subscriber: (payload: Events[K]) => void
-    ): { to: (eventName: K) => void };
-    unSubscribe<K extends keyof Events>(
-        subscriber: (payload: Events[K]) => void
-    ): { from: (eventName: K) => void };
-    publish<K extends keyof Events>(eventName: K): {
-        now: () => void;
-        post: () => void;
-        async: () => void;
-        queue: {
-            all: () => void;
-            latest: () => void;
-        };
-        with: (payload: Events[K]) => {
-            now: () => void;
-            post: () => void;
-            async: () => void;
-            queue: {
-                all: () => void;
-                latest: () => void;
-            };
-        };
+type EventName<Events extends object> = Extract<keyof Events, string>;
+type EventSubscriber<Payload> = (payload: Payload) => void;
+type IsAny<Value> = 0 extends (1 & Value) ? true : false;
+
+interface QueueOptions {
+    all(): void;
+    latest(): void;
+}
+
+interface TimingOptions {
+    now(): void;
+    post(): void;
+    async(): void;
+    queue: QueueOptions;
+}
+
+interface WithPayload<Payload> {
+    with(payload: Payload): TimingOptions;
+}
+
+/**
+ * Every branch keeps `with(...)` so the type stays usable when the event name
+ * is a generic parameter (TypeScript then sees the union of all branches).
+ * Only events whose payload may be omitted also expose the timing helpers
+ * directly on the builder.
+ */
+type PublishOptions<Payload> =
+    IsAny<Payload> extends true
+        ? TimingOptions & WithPayload<Payload>
+        : [Payload] extends [never]
+            ? never
+            : [Payload] extends [void]
+                ? TimingOptions & WithPayload<Payload>
+                : undefined extends Payload
+                    ? TimingOptions & WithPayload<Payload>
+                    : WithPayload<Payload>;
+
+/** Distributes over `K` so a union of event names is checked per member. */
+type PublishOptionsFor<Events extends object, K extends EventName<Events>> = {
+    [Name in K]: PublishOptions<Events[Name]>;
+}[K];
+
+type SubscriptionSnapshot<
+    Events extends object,
+    K extends EventName<Events> = EventName<Events>
+> = {
+    [Name in K]: {
+        readonly eventName: Name;
+        readonly subscriber: EventSubscriber<Events[Name]>;
+    }
+}[K];
+
+interface ClearOptions<Events extends object> {
+    posts: {
+        all(): void;
+        byEventName(eventName: EventName<Events>): void;
     };
+    queue: {
+        all(): void;
+        byEventName(eventName: EventName<Events>): void;
+    };
+    subscriptions: {
+        all(): void;
+        byEventName(eventName: EventName<Events>): void;
+    };
+}
+
+export interface TypedAppBus<Events extends object> {
+    subscribe<K extends EventName<Events>>(
+        eventName: K,
+        subscriber: EventSubscriber<Events[K]>
+    ): void;
+    once<K extends EventName<Events>>(
+        eventName: K,
+        subscriber: EventSubscriber<Events[K]>
+    ): void;
+    unSubscribe<K extends EventName<Events>>(
+        eventName: K,
+        subscriber: EventSubscriber<Events[K]>
+    ): void;
+    publish<K extends EventName<Events>>(eventName: K): PublishOptionsFor<Events, K>;
     unsubscribeAll(): void;
-    getSubscriptions(eventName?: keyof Events): unknown[];
-    clear: any;
+    getSubscriptions<K extends EventName<Events>>(
+        eventName: K
+    ): SubscriptionSnapshot<Events, K>[];
+    getSubscriptions(): SubscriptionSnapshot<Events>[];
+    clear: ClearOptions<Events>;
+}
+
+/**
+ * Default event map used when `AppBusFactory.new()` is called without one.
+ * Its single event name doubles as the error message TypeScript reports when
+ * the resulting bus is used, so the mistake is caught at the first call site.
+ */
+export interface EventMapRequired {
+    'AppBusFactory.new() requires an event map: AppBusFactory.new<Events>()': never;
 }
 
 function AppBus() {
@@ -47,22 +115,30 @@ function AppBus() {
     const queuedPublications: Publication[] = [];
     const subscriptions: Subscription[] = [];
 
-    const curryDeliveryJob = (subscriber: (payload?: any) => void) => {
-        return (payload?: any) => {
-            subscriber.apply(null, [payload]);
-        };
-    };
-
-    const makeSubscription = (subscriber: (payload?: any) => void, eventName: string): Subscription => {
-        const send = curryDeliveryJob(subscriber);
-        return {
+    const makeSubscription = (subscriber: RuntimeSubscriber, eventName: string, once: boolean): Subscription => {
+        const subscription: Subscription = {
             subscriber,
             eventName,
-            send
+            once,
+            send: (payload?: unknown) => {
+                subscriber.apply(null, [payload]);
+            }
         };
+        if (once) {
+            subscription.send = (payload?: unknown) => {
+                // A nested publish may already have consumed this subscription;
+                // deliver only if it was still registered.
+                if (removeSubscriptionEntry(subscription)) {
+                    subscriber.apply(null, [payload]);
+                }
+            };
+        }
+        return subscription;
     };
 
-    const findSubscriptions = (eventName: string, subscriber?: (payload?: any) => void): Subscription[] => {
+    const isSubscribed = (subscription: Subscription) => subscriptions.indexOf(subscription) !== -1;
+
+    const findSubscriptions = (eventName: string, subscriber?: RuntimeSubscriber): Subscription[] => {
         const found: Subscription[] = [];
         subscriptions.forEach(subscription => {
             if (subscription.eventName === eventName) {
@@ -78,33 +154,51 @@ function AppBus() {
         return found;
     };
 
-    const publishToSubscribers = (eventName: string, payload?: any) => {
+    const publishToSubscribers = (eventName: string, payload?: unknown) => {
         const found = findSubscriptions(eventName);
         found.forEach(subscription => {
             subscription.send(payload);
         });
     };
 
-    const publishAsync = (eventName: string, payload?: any) => {
+    const publishAsync = (eventName: string, payload?: unknown) => {
         queueMicrotask(() => publishToSubscribers(eventName, payload));
     };
 
-    const processQueuedPublications = (eventName: string) => {
-        for (let i = 0; i < queuedPublications.length; i++) {
+    // Queued publications are replayed only to the subscription that was just
+    // added; existing subscribers already received them when they were queued.
+    const processQueuedPublications = (subscription: Subscription) => {
+        for (let i = 0; i < queuedPublications.length;) {
             const queuedPublication = queuedPublications[i];
-            if (queuedPublication.eventName === eventName) {
-                publishToSubscribers(queuedPublication.eventName, queuedPublication.payload);
-                queuedPublications.splice(i, 1);
-                i -= 1;
+            if (queuedPublication.eventName !== subscription.eventName) {
+                i += 1;
+                continue;
+            }
+            if (!isSubscribed(subscription)) {
+                return;
+            }
+            queuedPublications.splice(i, 1);
+            try {
+                subscription.send(queuedPublication.payload);
+            } catch (error) {
+                // Delivery failed: keep the publication for a later subscriber.
+                queuedPublications.splice(Math.min(i, queuedPublications.length), 0, queuedPublication);
+                throw error;
             }
         }
     };
 
-    const processPostedPublications = (eventName: string) => {
+    // Posted publications are replayed only to the subscription that was just
+    // added, so a subscriber that subscribes during delivery cannot trigger a
+    // second delivery to subscribers that already received the post.
+    const processPostedPublications = (subscription: Subscription) => {
         for (let i = 0; i < postedPublications.length; i++) {
             const postedPublication = postedPublications[i];
-            if (postedPublication.eventName === eventName) {
-                publishToSubscribers(postedPublication.eventName, postedPublication.payload);
+            if (postedPublication.eventName === subscription.eventName) {
+                if (!isSubscribed(subscription)) {
+                    return;
+                }
+                subscription.send(postedPublication.payload);
             }
         }
     };
@@ -115,24 +209,37 @@ function AppBus() {
         }
     };
 
-    const validateSubscriber = (subscriber: unknown) => {
+    const validateSubscriber: (
+        subscriber: unknown
+    ) => asserts subscriber is RuntimeSubscriber = subscriber => {
         if (typeof subscriber !== 'function') {
             throw new Error('The subscriber argument is not a Function. Found: ' + typeof subscriber);
         }
     };
 
-    const addSubscription = (subscriber: (payload?: any) => void, eventName: string) => {
-        const duplicateSubscriptions = findSubscriptions(eventName, subscriber);
-        if (duplicateSubscriptions.length > 0) {
+    const addSubscription = (subscriber: RuntimeSubscriber, eventName: string, once = false) => {
+        const duplicate = findSubscriptions(eventName, subscriber).some(
+            subscription => subscription.once === once
+        );
+        if (duplicate) {
             return;
         }
-        const subscription = makeSubscription(subscriber, eventName);
+        const subscription = makeSubscription(subscriber, eventName, once);
         subscriptions.push(subscription);
-        processPostedPublications(eventName);
-        processQueuedPublications(eventName);
+        processPostedPublications(subscription);
+        processQueuedPublications(subscription);
     };
 
-    const removeSubscription = (subscriber: (payload?: any) => void, eventName: string) => {
+    const removeSubscriptionEntry = (subscription: Subscription): boolean => {
+        const index = subscriptions.indexOf(subscription);
+        if (index === -1) {
+            return false;
+        }
+        subscriptions.splice(index, 1);
+        return true;
+    };
+
+    const removeSubscription = (subscriber: RuntimeSubscriber, eventName: string) => {
         for (let i = 0; i < subscriptions.length; i++) {
             const subscription = subscriptions[i];
             if (subscription.eventName === eventName && subscription.subscriber === subscriber) {
@@ -142,7 +249,7 @@ function AppBus() {
         }
     };
 
-    const postPublication = (eventName: string, payload?: any) => {
+    const postPublication = (eventName: string, payload?: unknown) => {
         const publication: Publication = {
             eventName,
             payload
@@ -161,7 +268,7 @@ function AppBus() {
         postedPublications.push(publication);
     };
 
-    const queuePublication = (eventName: string, payload?: any) => {
+    const queuePublication = (eventName: string, payload?: unknown) => {
         const publication: Publication = {
             eventName,
             payload
@@ -174,7 +281,7 @@ function AppBus() {
         }
     };
 
-    const queueOnlyLatestPublication = (eventName: string, payload?: any) => {
+    const queueOnlyLatestPublication = (eventName: string, payload?: unknown) => {
         for (let i = 0; i < queuedPublications.length; i++) {
             const queuedPublication = queuedPublications[i];
             if (queuedPublication.eventName === eventName) {
@@ -227,7 +334,7 @@ function AppBus() {
         }
     };
 
-    const curryTo = (subscriber: (payload?: any) => void) => {
+    const curryTo = (subscriber: RuntimeSubscriber) => {
         return {
             to: (eventName: string) => {
                 addSubscription(subscriber, eventName);
@@ -235,19 +342,15 @@ function AppBus() {
         };
     };
 
-    const curryOnce = (subscriber: (payload?: any) => void) => {
+    const curryOnce = (subscriber: RuntimeSubscriber) => {
         return {
             to: (eventName: string) => {
-                const wrapper = (payload?: any) => {
-                    subscriber(payload);
-                    removeSubscription(wrapper, eventName);
-                };
-                addSubscription(wrapper, eventName);
+                addSubscription(subscriber, eventName, true);
             }
         };
     };
 
-    const curryFrom = (subscriber: (payload?: any) => void) => {
+    const curryFrom = (subscriber: RuntimeSubscriber) => {
         return {
             from: (eventName: string) => {
                 removeSubscription(subscriber, eventName);
@@ -255,7 +358,7 @@ function AppBus() {
         };
     };
 
-    const curryQueueOptions = (eventName: string, payload?: any) => {
+    const curryQueueOptions = (eventName: string, payload?: unknown) => {
         return {
             all: () => {
                 queuePublication(eventName, payload);
@@ -266,7 +369,7 @@ function AppBus() {
         };
     };
 
-    const curryTimingOptions = (eventName: string, payload?: any) => {
+    const curryTimingOptions = (eventName: string, payload?: unknown) => {
         return {
             now: () => {
                 publishToSubscribers(eventName, payload);
@@ -283,17 +386,8 @@ function AppBus() {
 
     const curryPublishOptions = (eventName: string) => {
         return {
-            now: () => {
-                publishToSubscribers(eventName);
-            },
-            async: () => {
-                publishAsync(eventName);
-            },
-            queue: curryQueueOptions(eventName),
-            post: () => {
-                postPublication(eventName);
-            },
-            with: (payload: any) => {
+            ...curryTimingOptions(eventName),
+            with: (payload: unknown) => {
                 return curryTimingOptions(eventName, payload);
             }
         };
@@ -314,30 +408,47 @@ function AppBus() {
         }
     };
 
-    const subscribe = (subscriber: (payload?: any) => void) => {
+    const subscribe = (eventNameOrSubscriber: string | RuntimeSubscriber, subscriber?: unknown) => {
+        if (typeof eventNameOrSubscriber === 'function') {
+            return curryTo(eventNameOrSubscriber);
+        }
+        validateEventName(eventNameOrSubscriber);
         validateSubscriber(subscriber);
-        return curryTo(subscriber);
+        addSubscription(subscriber, eventNameOrSubscriber);
     };
 
-    const once = (subscriber: (payload?: any) => void) => {
+    const once = (eventNameOrSubscriber: string | RuntimeSubscriber, subscriber?: unknown) => {
+        if (typeof eventNameOrSubscriber === 'function') {
+            return curryOnce(eventNameOrSubscriber);
+        }
+        validateEventName(eventNameOrSubscriber);
         validateSubscriber(subscriber);
-        return curryOnce(subscriber);
+        addSubscription(subscriber, eventNameOrSubscriber, true);
     };
 
-    const unSubscribe = (subscriber: (payload?: any) => void) => {
+    const unSubscribe = (eventNameOrSubscriber: string | RuntimeSubscriber, subscriber?: unknown) => {
+        if (typeof eventNameOrSubscriber === 'function') {
+            return curryFrom(eventNameOrSubscriber);
+        }
+        validateEventName(eventNameOrSubscriber);
         validateSubscriber(subscriber);
-        return curryFrom(subscriber);
+        removeSubscription(subscriber, eventNameOrSubscriber);
     };
 
     const unsubscribeAll = () => {
         clearAllSubscriptions();
     };
 
-    const getSubscriptionsList = (eventName?: string): Subscription[] => {
-        if (eventName) {
-            return findSubscriptions(eventName).slice();
+    const snapshot = (subscription: Subscription) => ({
+        eventName: subscription.eventName,
+        subscriber: subscription.subscriber
+    });
+
+    const getSubscriptionsList = (eventName?: string) => {
+        if (eventName !== undefined) {
+            return findSubscriptions(eventName).map(snapshot);
         }
-        return subscriptions.slice();
+        return subscriptions.map(snapshot);
     };
 
     const publish = (eventName: string) => {
@@ -357,7 +468,7 @@ function AppBus() {
 }
 
 const AppBusFactory = {
-    new: <E extends Record<string, any> = Record<string, any>>() => {
+    new: <E extends object = EventMapRequired>() => {
         return AppBus() as unknown as TypedAppBus<E>;
     }
 };

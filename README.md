@@ -95,10 +95,27 @@ function makeBus<E extends object>(): TypedAppBus<E> {
 - `clear.queue.all()` / `clear.posts.all()` – Reset queued or posted events.
 
 ## Tests
-Run `npm test` to compile and execute the mocha test suite.
+- `npm test` – build, run the mocha suite, and type-check the consumer tests.
+- `npm run lint` – ESLint over sources, tests, and scripts.
+- `npm run typecheck` – type-check both build targets without emitting.
+- `npm run test:coverage` – mocha under c8 with an lcov report in `coverage/`.
+- `npm run check:package` – build, then validate the package with publint and Are The Types Wrong.
+- `npm run check` – everything above; this is what the release workflow runs.
+
+CI runs lint, the test matrix on Node 20, 22, and 24, and the package checks on every push and pull request. Dependabot opens weekly update PRs for npm and GitHub Actions.
 
 ## Release Process
-Update the version and release notes, then run `npm run release -- --dry-run` to validate the exact npm artifact. Commit and tag the release (for example `v3.0.0`) before running `npm run release`. Publishing requires an npm account with access to `@redjay/app-bus`; use `npm login` first when needed.
+Releases are published by GitHub Actions when a `v*` tag is pushed.
+
+1. Update the version in `package.json` (`npm version <major|minor|patch> --no-git-tag-version`) and add a release-notes entry below.
+2. Run `npm run check` locally and commit.
+3. Tag and push: `git tag -a v3.0.0 -m "Release 3.0.0" && git push origin master v3.0.0`.
+
+The release workflow verifies that the tag matches the package version, runs `npm run check`, publishes to npm with provenance, and creates a GitHub release with generated notes.
+
+Publishing uses npm trusted publishing. One-time setup on npmjs.com: open the package settings for `@redjay/app-bus`, add a GitHub Actions trusted publisher with owner `JoshuaRamirez`, repository `AppBus`, workflow `release.yml`, and environment `npm`. If an `NPM_TOKEN` repository secret is configured instead, the workflow uses it as a fallback.
+
+For a manual publish from a machine with `npm login`, `npm run release -- --dry-run` validates the artifact and `npm run release` publishes it.
 
 ## Release Notes
 ### 3.0.0

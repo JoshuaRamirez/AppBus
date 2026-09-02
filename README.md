@@ -62,6 +62,10 @@ interface Events {
 const typedBus = AppBusFactory.new<Events>();
 typedBus.subscribe('user.created', e => console.log(e.id));
 typedBus.publish('user.created').with({ id: 1 }).now();
+
+const untypedBus = AppBusFactory.new(); // no map: any event name, any payload
+untypedBus.subscribe('anything', payload => console.log(payload));
+untypedBus.publish('anything').with(42).now();
 ```
 
 Supplying an event map makes the bus type-safe at its two doors: `publish` is
@@ -154,7 +158,7 @@ Unlike npmjs, a local registry lets you `npm unpublish --force` and republish th
 
 ## Release Notes
 ### 3.0.0
-First version published under `@redjay/app-bus`. The unscoped `app-bus` package ends at 2.1.1 and receives no further releases.
+First version published under `@redjay/app-bus`. The unscoped `app-bus` package ends at 2.1.1 and receives no further releases. The event map stays optional: `AppBusFactory.new()` without one is an untyped bus, as in 2.x, and `UntypedEvents` names that default.
 
 Breaking changes for TypeScript consumers:
 - The typed API is event-first: `subscribe(event, fn)`, `once(event, fn)`, `unsubscribe(event, fn)`. The curried `.to()` / `.from()` form remains available to JavaScript callers only.
@@ -162,7 +166,6 @@ Breaking changes for TypeScript consumers:
 - Events with a required payload must call `.with(payload)` before `.now()`, `.post()`, `.async()` or `.queue`. A union of event names is checked per member.
 - CommonJS type declarations use `export =`; `TypedAppBus` is exported as a type from both entry points.
 - `getSubscriptions()` snapshots expose only `eventName` and `subscriber`.
-- The event map stays optional. `AppBusFactory.new()` without one is an untyped bus, as in 2.x; `UntypedEvents` names that default.
 - Package metadata declares `engines.node >= 20`, `type: commonjs`, and `sideEffects: false`.
 - The exports map exposes `./package.json` for tooling that reads a dependency's manifest.
 

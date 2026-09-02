@@ -596,11 +596,11 @@ describe('AppBus', function () {
             expect(AppBusFactory).to.have.property('new');
         });
         it('Can require the package by name', function () {
-            const appBusFactory = require('app-bus');
+            const appBusFactory = require('@redjay/app-bus');
             expect(appBusFactory).to.have.property('new');
         });
         it('Can import the package as an ES module', async function () {
-            const { default: appBusFactory } = await import('app-bus');
+            const { default: appBusFactory } = await import('@redjay/app-bus');
             expect(appBusFactory).to.have.property('new');
         });
         it('and use it to create an instance.', function () {

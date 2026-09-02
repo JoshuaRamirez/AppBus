@@ -1,6 +1,6 @@
 {
-  "name": "app-bus",
-  "version": "2.3.1",
+  "name": "@redjay/app-bus",
+  "version": "2.3.2",
   "description": "A dependency-free application event bus with typed publish/subscribe for JavaScript and TypeScript.",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -8,6 +8,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build:cjs": "tsc -p tsconfig.json",
     "build:esm": "tsc -p tsconfig.esm.json && node scripts/write-esm-package.js",
@@ -32,7 +35,7 @@
     "Subscriptions",
     "Bus"
   ],
-  "author": "Joshua Ramirez <joshuaramirez2048@gmail.com>",
+  "author": "Joshua Ramirez",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/JoshuaRamirez/AppBus/issues"

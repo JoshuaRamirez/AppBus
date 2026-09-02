@@ -1,4 +1,4 @@
-import AppBusFactory from 'app-bus';
+import AppBusFactory from '@redjay/app-bus';
 
 interface Events {
   'user.created': { id: number };

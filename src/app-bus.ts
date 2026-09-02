@@ -17,18 +17,32 @@ type EventSubscriber<Payload> = (payload: Payload) => void;
 type IsAny<Value> = 0 extends (1 & Value) ? true : false;
 
 interface QueueOptions {
+    /**
+     * Deliver to current subscribers if any exist; otherwise store the
+     * publication until the next subscriber arrives, then deliver and discard it.
+     */
     all(): void;
+    /** Like `all()`, but first drops earlier queued publications for the same event. */
     latest(): void;
 }
 
 interface TimingOptions {
+    /** Deliver synchronously to current subscribers. Nothing is stored. */
     now(): void;
+    /**
+     * Deliver to current subscribers, then keep the publication so every future
+     * subscriber to this event receives it on subscribe. Only the most recent
+     * post per event is kept.
+     */
     post(): void;
+    /** Deliver in a microtask to whoever is subscribed when it runs. */
     async(): void;
+    /** Store the publication until a subscriber exists. */
     queue: QueueOptions;
 }
 
 interface WithPayload<Payload> {
+    /** Attach a payload, then choose a delivery mode. */
     with(payload: Payload): TimingOptions;
 }
 
@@ -65,29 +79,48 @@ type SubscriptionSnapshot<
 }[K];
 
 interface ClearOptions<Events extends object> {
+    /** Discard stored posts. */
     posts: {
         all(): void;
         byEventName(eventName: EventName<Events>): void;
     };
+    /** Discard queued publications. */
     queue: {
         all(): void;
         byEventName(eventName: EventName<Events>): void;
     };
+    /** Remove subscriptions. Posts and queued publications are kept. */
     subscriptions: {
         all(): void;
         byEventName(eventName: EventName<Events>): void;
     };
 }
 
+/**
+ * An in-memory publish/subscribe bus. `Events` maps event names to payload
+ * types; every method infers its payload type from the event name.
+ */
 export interface TypedAppBus<Events extends object> {
+    /**
+     * Register `subscriber` for `eventName`. Registering the same function
+     * twice for the same event is ignored. Any posted publication for the event
+     * is delivered to the new subscriber immediately, followed by any queued
+     * publications.
+     */
     subscribe<K extends EventName<Events>>(
         eventName: K,
         subscriber: EventSubscriber<Events[K]>
     ): void;
+    /**
+     * Like `subscribe`, but the subscription is removed before its first
+     * delivery. A `once` and a persistent subscription of the same function
+     * may coexist.
+     */
     once<K extends EventName<Events>>(
         eventName: K,
         subscriber: EventSubscriber<Events[K]>
     ): void;
+    /** Remove every subscription of `subscriber` for `eventName`, persistent or `once`. */
     unsubscribe<K extends EventName<Events>>(
         eventName: K,
         subscriber: EventSubscriber<Events[K]>
@@ -97,12 +130,20 @@ export interface TypedAppBus<Events extends object> {
         eventName: K,
         subscriber: EventSubscriber<Events[K]>
     ): void;
+    /**
+     * Start a publication. Call `.with(payload)` then a delivery mode. Events
+     * whose payload is `void`, optional, or `any` may skip `.with(...)`.
+     */
     publish<K extends EventName<Events>>(eventName: K): PublishOptionsFor<Events, K>;
+    /** Remove every subscription on the bus. Posts and queued publications are kept. */
     unsubscribeAll(): void;
+    /** Read-only snapshot of the subscriptions for one event. */
     getSubscriptions<K extends EventName<Events>>(
         eventName: K
     ): SubscriptionSnapshot<Events, K>[];
+    /** Read-only snapshot of every subscription on the bus. */
     getSubscriptions(): SubscriptionSnapshot<Events>[];
+    /** Discard stored state by kind and, optionally, by event name. */
     clear: ClearOptions<Events>;
 }
 
@@ -474,6 +515,10 @@ function AppBus() {
 }
 
 const AppBusFactory = {
+    /**
+     * Create a bus. `E` maps event names to payload types and is required in
+     * TypeScript; omitting it yields a bus that cannot publish or subscribe.
+     */
     new: <E extends object = EventMapRequired>() => {
         return AppBus() as unknown as TypedAppBus<E>;
     }

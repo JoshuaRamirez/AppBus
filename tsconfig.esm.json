@@ -4,5 +4,6 @@
     "module": "ES2020",
     "outDir": "dist/esm",
     "declaration": true
-  }
+  },
+  "exclude": ["src/index.cts"]
 }

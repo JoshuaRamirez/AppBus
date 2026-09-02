@@ -8,5 +8,5 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["test/types.ts"]
+  "include": ["test/types.ts", "test/types-cjs.cts", "test/types-esm.mts"]
 }

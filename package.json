@@ -40,7 +40,11 @@
     "Subscribe",
     "Publications",
     "Subscriptions",
-    "Bus"
+    "Bus",
+    "event-bus",
+    "pubsub",
+    "typescript",
+    "typed-events"
   ],
   "author": "Joshua Ramirez",
   "license": "ISC",

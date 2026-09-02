@@ -31,7 +31,7 @@ Current releases are published as `@redjay/app-bus`. The unscoped `app-bus` pack
 ```bash
 npm install @redjay/app-bus
 ```
-Both ESM and CommonJS builds are provided. Use `import` or `require` depending on your environment.
+Both ESM and CommonJS builds are provided. Use `import` or `require` depending on your environment. Requires Node.js 20 or later; the type declarations require TypeScript 4.7 or later.
 
 ## Quick Start
 ```js

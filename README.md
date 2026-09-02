@@ -116,10 +116,14 @@ The release workflow verifies that the tag matches the package version and that 
 
 Publishing uses npm trusted publishing. One-time setup on npmjs.com: open the package settings for `@redjay/app-bus`, add a GitHub Actions trusted publisher with owner `JoshuaRamirez`, repository `AppBus`, workflow `release.yml`, and environment `npm`. If an `NPM_TOKEN` repository secret is configured instead, the workflow uses it as a fallback.
 
-For a manual publish from a machine with `npm login`, `npm run release -- --dry-run` validates the artifact and `npm run release` publishes it.
+Trusted publishing can only be configured for a package that already exists on the registry. The very first publish of a new package name must therefore use a token: either set the `NPM_TOKEN` secret before pushing the tag, or publish once from a machine with `npm login` using `npm run release -- --dry-run` to validate and `npm run release` to publish. Configure the trusted publisher afterwards and remove the token.
+
+npm does not allow a fully unpublished package name to be republished for 24 hours, and a version number that was ever published cannot be reused.
 
 ## Release Notes
 ### 3.0.0
+First version published under `@redjay/app-bus`. The unscoped `app-bus` package ends at 2.1.1 and receives no further releases.
+
 Breaking changes for TypeScript consumers:
 - `AppBusFactory.new<Events>()` requires an event map. A bus created without one cannot publish or subscribe; the compiler error names the fix.
 - The typed API is event-first: `subscribe(event, fn)`, `once(event, fn)`, `unsubscribe(event, fn)`. The curried `.to()` / `.from()` form remains available to JavaScript callers only.
